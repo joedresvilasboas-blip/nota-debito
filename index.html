@@ -219,11 +219,18 @@ textarea{resize:vertical;min-height:68px}
     </div>
     <input type="text" id="qr-manual" placeholder="Ou cole o link da NF-e aqui" style="margin-top:8px" oninput="setNFManual(this.value)" />
 
-    <div class="drop" onclick="document.getElementById('file-input').click()" style="margin-top:8px">
-      <div class="di">📎</div>
-      <p>Foto ou PDF do comprovante</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <div class="drop" onclick="document.getElementById('file-camera').click()" style="margin-top:0">
+        <div class="di">📷</div>
+        <p>Tirar foto</p>
+      </div>
+      <div class="drop" onclick="document.getElementById('file-input').click()" style="margin-top:0">
+        <div class="di">📁</div>
+        <p>Galeria / PDF</p>
+      </div>
     </div>
-    <input type="file" id="file-input" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="attachFile(event)" />
+    <input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none" onchange="attachFile(event)" />
+    <input type="file" id="file-input" accept="image/*,application/pdf" style="display:none" onchange="attachFile(event)" />
     <div id="attach-list"></div>
 
     <button class="btn btn-primary mt16" onclick="addDespesa()">➕ Adicionar despesa</button>
@@ -332,6 +339,35 @@ textarea{resize:vertical;min-height:68px}
   </div>
   <p style="position:absolute;bottom:100px;color:#fff;font-size:14px;text-align:center;padding:0 32px;opacity:.85">Aponte para o QR code da NF-e</p>
   <button class="qr-cancel" onclick="pararQR()" style="position:absolute;bottom:36px">✕ Cancelar</button>
+</div>
+
+<!-- MODAL CROP ────────────────────────────────────── -->
+<div class="modal-overlay" id="crop-modal">
+  <div class="modal" style="padding-bottom:24px">
+    <button class="modal-close" onclick="cancelarCrop()">✕</button>
+    <h2>✂️ Ajustar imagem</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Arraste para mover · Pinça para zoom</p>
+    <div id="crop-wrap" style="position:relative;width:100%;height:300px;overflow:hidden;background:#000;border-radius:var(--radius-sm);touch-action:none">
+      <img id="crop-img" style="position:absolute;transform-origin:center;user-select:none;-webkit-user-select:none" draggable="false" />
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <button class="btn" onclick="rotacionarCrop(-90)">↺ Girar</button>
+      <button class="btn" onclick="rotacionarCrop(90)">↻ Girar</button>
+    </div>
+    <button class="btn btn-primary mt8" onclick="confirmarCrop()">✅ Usar imagem</button>
+    <button class="btn btn-ghost mt8" onclick="cancelarCrop()">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAÇÃO QR -->
+<div class="modal-overlay" id="qr-confirm-modal">
+  <div class="modal">
+    <h2>✅ QR code lido!</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Confirme o link da NF-e:</p>
+    <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;font-size:12px;word-break:break-all;color:var(--text);line-height:1.5;margin-bottom:16px" id="qr-confirm-text"></div>
+    <button class="btn btn-primary" onclick="aceitarQR()">✅ Confirmar e usar</button>
+    <button class="btn mt8" onclick="rejeitarQR()">🔄 Ler novamente</button>
+  </div>
 </div>
 
 <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
@@ -711,7 +747,7 @@ async function iniciarQR(){
       (result,err)=>{
         if(result){
           const txt=result.getText();
-          if(txt){pararQR();setNF(txt);}
+          if(txt){pararQR();confirmarQR(txt);}
         }
       }
     );
@@ -729,6 +765,26 @@ function pararQR(){
   document.getElementById('qr-video-wrap').classList.remove('open');
 }
 
+function confirmarQR(txt){
+  // Mostra modal de confirmação
+  document.getElementById('qr-confirm-text').textContent=txt;
+  document.getElementById('qr-confirm-modal').classList.add('open');
+  window._pendingQR=txt;
+}
+
+function aceitarQR(){
+  document.getElementById('qr-confirm-modal').classList.remove('open');
+  if(window._pendingQR) setNF(window._pendingQR);
+  window._pendingQR=null;
+}
+
+function rejeitarQR(){
+  document.getElementById('qr-confirm-modal').classList.remove('open');
+  window._pendingQR=null;
+  // Reabrir câmera
+  setTimeout(()=>iniciarQR(),300);
+}
+
 function setNFManual(v){if(v.startsWith('http'))setNF(v.trim())}
 function setNF(link){
   nfLink=link;
@@ -744,13 +800,7 @@ function clearNF(){
   document.getElementById('qr-manual').value='';
 }
 
-function attachFile(e){
-  const f=e.target.files[0];if(!f)return;
-  const reader=new FileReader();
-  reader.onload=ev=>{attachs.push({name:f.name,type:f.type,data:ev.target.result});renderAttachs()};
-  reader.readAsDataURL(f);
-  e.target.value='';
-}
+
 function renderAttachs(){
   document.getElementById('attach-list').innerHTML=attachs.map((a,i)=>`
     <div class="thumb">
@@ -1019,6 +1069,147 @@ ${comprovantesHTML}
   window.open(URL.createObjectURL(blob),'_blank');
 }
 
+// ─── CROP ─────────────────────────────────────────────────────
+let cropState={scale:1,rot:0,x:0,y:0,startX:0,startY:0,dragging:false,pinchDist:0,origDataUrl:null,origName:'',origType:''};
+
+function attachFile(e){
+  const f=e.target.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    if(f.type.startsWith('image/')){
+      // Abrir crop modal
+      cropState={scale:1,rot:0,x:0,y:0,startX:0,startY:0,dragging:false,pinchDist:0,
+        origDataUrl:ev.target.result,origName:f.name,origType:f.type};
+      const img=document.getElementById('crop-img');
+      img.src=ev.target.result;
+      img.onload=()=>{
+        fitCropImage();
+        document.getElementById('crop-modal').classList.add('open');
+      };
+    } else {
+      // PDF — adicionar direto
+      attachs.push({name:f.name,type:f.type,data:ev.target.result});
+      renderAttachs();
+    }
+  };
+  reader.readAsDataURL(f);
+  e.target.value='';
+}
+
+function fitCropImage(){
+  const wrap=document.getElementById('crop-wrap');
+  const img=document.getElementById('crop-img');
+  const ww=wrap.clientWidth, wh=wrap.clientHeight;
+  const iw=img.naturalWidth, ih=img.naturalHeight;
+  cropState.scale=Math.min(ww/iw, wh/ih)*0.92;
+  cropState.x=0; cropState.y=0;
+  applyCropTransform();
+}
+
+function applyCropTransform(){
+  const img=document.getElementById('crop-img');
+  const wrap=document.getElementById('crop-wrap');
+  const cx=wrap.clientWidth/2, cy=wrap.clientHeight/2;
+  img.style.transform=`translate(calc(-50% + ${cropState.x}px), calc(-50% + ${cropState.y}px)) rotate(${cropState.rot}deg) scale(${cropState.scale})`;
+  img.style.left=cx+'px';
+  img.style.top=cy+'px';
+}
+
+function rotacionarCrop(deg){
+  cropState.rot=(cropState.rot+deg+360)%360;
+  applyCropTransform();
+}
+
+function cancelarCrop(){
+  document.getElementById('crop-modal').classList.remove('open');
+}
+
+function confirmarCrop(){
+  const img=document.getElementById('crop-img');
+  const wrap=document.getElementById('crop-wrap');
+  const ww=wrap.clientWidth, wh=wrap.clientHeight;
+  // Render to canvas at wrap size
+  const canvas=document.createElement('canvas');
+  canvas.width=ww*2; canvas.height=wh*2; // 2x for retina
+  const ctx=canvas.getContext('2d');
+  ctx.scale(2,2);
+  ctx.fillStyle='#fff';
+  ctx.fillRect(0,0,ww,wh);
+  ctx.save();
+  ctx.translate(ww/2+cropState.x, wh/2+cropState.y);
+  ctx.rotate(cropState.rot*Math.PI/180);
+  ctx.scale(cropState.scale, cropState.scale);
+  ctx.drawImage(img, -img.naturalWidth/2, -img.naturalHeight/2);
+  ctx.restore();
+  const dataUrl=canvas.toDataURL('image/jpeg',0.92);
+  attachs.push({name:cropState.origName,type:'image/jpeg',data:dataUrl});
+  renderAttachs();
+  document.getElementById('crop-modal').classList.remove('open');
+}
+
+// Touch/mouse events for crop
+function initCropEvents(){
+  const wrap=document.getElementById('crop-wrap');
+
+  // Mouse
+  wrap.addEventListener('mousedown',e=>{
+    cropState.dragging=true;
+    cropState.startX=e.clientX-cropState.x;
+    cropState.startY=e.clientY-cropState.y;
+  });
+  wrap.addEventListener('mousemove',e=>{
+    if(!cropState.dragging)return;
+    cropState.x=e.clientX-cropState.startX;
+    cropState.y=e.clientY-cropState.startY;
+    applyCropTransform();
+  });
+  wrap.addEventListener('mouseup',()=>cropState.dragging=false);
+
+  // Touch
+  wrap.addEventListener('touchstart',e=>{
+    if(e.touches.length===1){
+      cropState.dragging=true;
+      cropState.startX=e.touches[0].clientX-cropState.x;
+      cropState.startY=e.touches[0].clientY-cropState.y;
+    } else if(e.touches.length===2){
+      cropState.dragging=false;
+      const dx=e.touches[0].clientX-e.touches[1].clientX;
+      const dy=e.touches[0].clientY-e.touches[1].clientY;
+      cropState.pinchDist=Math.sqrt(dx*dx+dy*dy);
+    }
+    e.preventDefault();
+  },{passive:false});
+
+  wrap.addEventListener('touchmove',e=>{
+    if(e.touches.length===1&&cropState.dragging){
+      cropState.x=e.touches[0].clientX-cropState.startX;
+      cropState.y=e.touches[0].clientY-cropState.startY;
+      applyCropTransform();
+    } else if(e.touches.length===2){
+      const dx=e.touches[0].clientX-e.touches[1].clientX;
+      const dy=e.touches[0].clientY-e.touches[1].clientY;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(cropState.pinchDist>0){
+        cropState.scale=Math.max(0.2,Math.min(6, cropState.scale*(dist/cropState.pinchDist)));
+        cropState.pinchDist=dist;
+        applyCropTransform();
+      }
+    }
+    e.preventDefault();
+  },{passive:false});
+
+  wrap.addEventListener('touchend',e=>{
+    if(e.touches.length===0){cropState.dragging=false;cropState.pinchDist=0;}
+  });
+
+  // Wheel zoom
+  wrap.addEventListener('wheel',e=>{
+    e.preventDefault();
+    cropState.scale=Math.max(0.2,Math.min(6,cropState.scale*(e.deltaY>0?0.9:1.1)));
+    applyCropTransform();
+  },{passive:false});
+}
+
 // ─── INIT ─────────────────────────────────────────────────────
 carregar();
 renderEventos();
@@ -1029,6 +1220,7 @@ setDia(1);
 atualizarDesc();
 mostrarBannerInstalar();
 atualizarStorageInfo();
+initCropEvents();
 </script>
 </body>
 </html>
