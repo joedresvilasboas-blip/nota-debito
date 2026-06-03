@@ -459,9 +459,9 @@ textarea{resize:vertical;min-height:68px}
 // ─── DADOS ────────────────────────────────────────────────────
 const TOMADORES={
   PLAT:{nome:'PLAT MENTORIAS E TREINAMENTOS LTDA',cnpj:'45.805.035/0001-36',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'},
-  INSIDER:{nome:'INSIDER MENTORIAS E TREINAMENTOS LTDA',cnpj:'34.295.555/0001-20',end:''},
-  FL:{nome:'IGNIÇÃO DIGITAL TECNOLOGIA DA INFORMAÇÃO LTDA',cnpj:'10.332.345/0001-04',end:''},
-  FHT:{nome:'FORMULA HIGH TICKET LTDA',cnpj:'53.049.699/0001-40',end:''}
+  INSIDER:{nome:'INSIDER MENTORIAS E TREINAMENTOS LTDA',cnpj:'34.295.555/0001-20',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'},
+  FL:{nome:'IGNIÇÃO DIGITAL TECNOLOGIA DA INFORMAÇÃO LTDA',cnpj:'10.332.345/0001-04',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'},
+  FHT:{nome:'FORMULA HIGH TICKET LTDA',cnpj:'53.049.699/0001-40',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'}
 };
 const ME={nome:'Joedres Ferreira Vilas Boas',cnpj:'52.150.205/0001-57',email:'joedres_vilasboas@hotmail.com',tel:'11 97547-8716',banco:'BTG Pactual S.A.',cod:'208',ag:'0050',conta:'848596-8'};
 
@@ -1105,36 +1105,36 @@ function gerarPDF(){
     nome: document.getElementById('cfg-nome')?.textContent.trim()||ME.nome,
     cnpj: document.getElementById('cfg-cnpj')?.textContent.trim()||ME.cnpj,
     email: document.getElementById('cfg-email')?.textContent.trim()||ME.email,
-    tel: document.getElementById('cfg-tel')?.textContent.trim()||ME.tel,
     end: document.getElementById('cfg-end')?.textContent.trim()||'',
     banco:ME.banco,cod:ME.cod,ag:ME.ag,conta:ME.conta
   };
   const endStr=(me.end&&me.end!=='\u2014'&&me.end!=='')?me.end:'';
 
-  // ── Linhas da tabela — sem URL ──
+  // ── Linhas da tabela — NF-e como link curto junto ao item ──
   const linhas=desp.map((d,i)=>`
     <tr>
-      <td style="text-align:center;padding:5px 4px;border-right:1px solid #ccc;border-bottom:1px solid #eee;vertical-align:top">${i+1}</td>
-      <td style="padding:5px 10px;border-right:1px solid #ccc;border-bottom:1px solid #eee;vertical-align:top">
+      <td style="text-align:center;padding:5px 4px;vertical-align:top">${i+1}</td>
+      <td style="padding:5px 10px;vertical-align:top">
         <strong style="font-size:11px">${d.desc.split('\n')[0]}</strong><br>
         <em style="font-size:10px;color:#333">${d.desc.split('\n')[1]||''}</em>
+        ${d.nfLink?` &nbsp;<a href="${d.nfLink}" style="font-size:9px;color:#1a56db;text-decoration:underline;white-space:nowrap">Ver NF-e \u00bb</a>`:''}
       </td>
-      <td style="text-align:center;padding:5px 4px;border-right:1px solid #ccc;border-bottom:1px solid #eee;vertical-align:top">1</td>
-      <td style="text-align:right;padding:5px 10px;border-bottom:1px solid #eee;vertical-align:top;white-space:nowrap">${parseFloat(d.valor).toFixed(2).replace('.',',')}</td>
+      <td style="text-align:center;padding:5px 4px;vertical-align:top">1</td>
+      <td style="text-align:right;padding:5px 10px;vertical-align:top;white-space:nowrap">${parseFloat(d.valor).toFixed(2).replace('.',',')}</td>
     </tr>`).join('');
 
-  // Linhas vazias — altura proporcional: menos itens = linhas mais altas
+  // Linhas vazias
   const emptyCount=Math.max(0,8-desp.length);
   const emptyH=desp.length>6?8:desp.length>4?12:16;
   const emptyRows=Array(emptyCount).fill(`
     <tr>
-      <td style="padding:${emptyH}px 4px;border-right:1px solid #ccc;border-bottom:1px solid #eee">&nbsp;</td>
-      <td style="padding:${emptyH}px 10px;border-right:1px solid #ccc;border-bottom:1px solid #eee">&nbsp;</td>
-      <td style="padding:${emptyH}px 4px;border-right:1px solid #ccc;border-bottom:1px solid #eee">&nbsp;</td>
-      <td style="padding:${emptyH}px 10px;border-bottom:1px solid #eee">&nbsp;</td>
+      <td style="padding:${emptyH}px 4px">&nbsp;</td>
+      <td style="padding:${emptyH}px 10px">&nbsp;</td>
+      <td style="padding:${emptyH}px 4px">&nbsp;</td>
+      <td style="padding:${emptyH}px 10px">&nbsp;</td>
     </tr>`).join('');
 
-  // ── Comprovantes — inline no mesmo documento ──
+  // ── Comprovantes inline ──
   let comprovantesHTML='';
   desp.forEach((d,di)=>{
     if(d.attachs&&d.attachs.length){
@@ -1151,7 +1151,7 @@ function gerarPDF(){
           comprovantesHTML+=`
           <div style="page-break-before:always;padding:16px;font-family:Arial,sans-serif">
             <p style="font-size:10px;color:#555;margin-bottom:10px;border-bottom:1px solid #ccc;padding-bottom:6px">${label}</p>
-            <p style="font-size:12px;color:#333;margin-top:12px">📄 Arquivo PDF: <strong>${a.name}</strong><br>
+            <p style="font-size:12px;color:#333;margin-top:12px">\uD83D\uDCC4 Arquivo PDF: <strong>${a.name}</strong><br>
             <small style="color:#777">Anexe o arquivo PDF separadamente junto com esta nota.</small></p>
           </div>`;
         }
@@ -1159,12 +1159,7 @@ function gerarPDF(){
     }
   });
 
-  // ── NF-e listadas no rodapé como hiperlink curto ──
-  const nfLinks=desp.filter(d=>d.nfLink).map((d,i)=>`
-    <span style="margin-right:12px;font-size:10px;white-space:nowrap">
-      <strong>Item ${desp.indexOf(d)+1}:</strong>
-      <a href="${d.nfLink}" style="color:#1a56db;text-decoration:underline">Ver NF-e &raquo;</a>
-    </span>`).join('');
+  const BRD='1px solid #000';
 
   const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
 <title>Nota de D\u00e9bito N\u00ba ${num}</title>
@@ -1178,15 +1173,17 @@ function gerarPDF(){
   .lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#333}
   table.main{width:100%;border-collapse:collapse}
   table.main td,table.main th{vertical-align:top}
+  .blk{border:${BRD}}
+  .blk-t{border:${BRD};border-top:none}
 </style>
 </head><body><div class="wrap">
 
 <div class="page-label">P\u00e1gina: 1 de 1</div>
 
 <!-- EMITENTE + NOTA DÉBITO -->
-<table class="main" style="border:2px solid #000">
+<table class="main blk">
   <tr>
-    <td style="width:55%;padding:8px 10px;border-right:2px solid #000">
+    <td style="width:55%;padding:8px 10px;border-right:${BRD}">
       <div style="font-weight:700;font-size:12px;margin-bottom:7px">EMITENTE</div>
       <div style="margin-bottom:4px"><span class="lbl">Nome/Raz\u00e3o Social: </span>${me.nome}</div>
       <div style="margin-bottom:4px"><span class="lbl">CPF/CNPJ: </span>${me.cnpj}</div>
@@ -1206,19 +1203,19 @@ function gerarPDF(){
 </table>
 
 <!-- TOMADOR DO SERVIÇO -->
-<table class="main" style="border:2px solid #000;border-top:none">
+<table class="main blk-t">
   <tr>
     <td style="padding:8px 10px">
       <div style="font-weight:700;font-size:12px;margin-bottom:7px">TOMADOR DO SERVI\u00c7O</div>
       <div style="margin-bottom:4px"><span class="lbl">Empresa: </span>${tom.nome||''}</div>
-      <div style="${tom.end?'margin-bottom:4px':''}"><span class="lbl">CNPJ: </span>${tom.cnpj||''}</div>
-      ${tom.end?`<div><span class="lbl">Endere\u00e7o: </span>${tom.end}</div>`:''}
+      <div style="margin-bottom:4px"><span class="lbl">CNPJ: </span>${tom.cnpj||''}</div>
+      <div><span class="lbl">Endere\u00e7o: </span>${tom.end||'SHCN CRN 516 CLN 316 - Asa Norte, Bras\u00edlia'}</div>
     </td>
   </tr>
 </table>
 
 <!-- EVENTO -->
-<table class="main" style="border:2px solid #000;border-top:none">
+<table class="main blk-t">
   <tr>
     <td style="padding:5px 10px">
       <strong>EVENTO:</strong>&nbsp;&nbsp;${ev.nome}${ev.cidade?' \u2014 '+ev.cidade:''}
@@ -1227,16 +1224,16 @@ function gerarPDF(){
 </table>
 
 <!-- TABELA ITENS -->
-<table class="main" style="border:2px solid #000;border-top:none">
+<table class="main blk-t">
   <thead>
     <tr>
-      <th rowspan="2" style="width:6%;padding:5px 4px;text-align:center;border-right:1px solid #ccc;border-bottom:1px solid #ccc;vertical-align:middle;font-size:11px">Item</th>
-      <th rowspan="2" style="padding:5px 10px;text-align:center;border-right:1px solid #ccc;border-bottom:1px solid #ccc;vertical-align:middle;font-size:11px">Descri\u00e7\u00e3o</th>
-      <th colspan="2" style="padding:5px 4px;text-align:center;border-bottom:1px solid #ccc;font-size:11px">Pre\u00e7o (R$)</th>
+      <th rowspan="2" style="width:6%;padding:5px 4px;text-align:center;border-right:${BRD};border-bottom:${BRD};vertical-align:middle">Item</th>
+      <th rowspan="2" style="padding:5px 10px;text-align:center;border-right:${BRD};border-bottom:${BRD};vertical-align:middle">Descri\u00e7\u00e3o</th>
+      <th colspan="2" style="padding:5px 4px;text-align:center;border-bottom:${BRD}">Pre\u00e7o (R$)</th>
     </tr>
     <tr>
-      <th style="width:10%;padding:4px;text-align:center;border-right:1px solid #ccc;border-bottom:1px solid #ccc;font-size:11px">Unit.</th>
-      <th style="width:14%;padding:4px 10px;text-align:right;border-bottom:1px solid #ccc;font-size:11px">Valor</th>
+      <th style="width:10%;padding:4px;text-align:center;border-right:${BRD};border-bottom:${BRD}">Unit.</th>
+      <th style="width:14%;padding:4px 10px;text-align:right;border-bottom:${BRD}">Valor</th>
     </tr>
   </thead>
   <tbody>
@@ -1246,7 +1243,7 @@ function gerarPDF(){
 </table>
 
 <!-- VALOR TOTAL -->
-<table class="main" style="border:2px solid #000;border-top:none">
+<table class="main blk-t">
   <tr>
     <td style="padding:6px 10px;text-align:right;font-size:12px">
       <strong>Valor total:</strong>&nbsp;&nbsp;&nbsp;R$ ${total.toFixed(2).replace('.',',')}
@@ -1255,7 +1252,7 @@ function gerarPDF(){
 </table>
 
 <!-- DADOS BANCÁRIOS -->
-<table class="main" style="border:2px solid #000;border-top:none">
+<table class="main blk-t">
   <tr>
     <td style="padding:8px 10px">
       <div style="font-weight:700;font-size:11px;text-transform:uppercase;margin-bottom:6px">Dados Banc\u00e1rios para Pagamento:</div>
@@ -1271,19 +1268,8 @@ function gerarPDF(){
   </tr>
 </table>
 
-${nfLinks?`
-<!-- LINKS NF-e -->
-<table class="main" style="border:2px solid #000;border-top:none">
-  <tr>
-    <td style="padding:5px 10px">
-      <span style="font-weight:700;font-size:9px;text-transform:uppercase;color:#555;margin-right:8px">Links NF-e:</span>
-      ${nfLinks}
-    </td>
-  </tr>
-</table>`:''}
-
 <!-- RODAPÉ -->
-<table class="main" style="border:2px solid #000;border-top:none">
+<table class="main blk-t">
   <tr>
     <td style="padding:4px 10px;text-align:center;font-size:9px;color:#555;font-style:italic">
       A presente nota de d\u00e9bito n\u00e3o est\u00e1 sujeita \u00e0 reten\u00e7\u00e3o de tributos na fonte.
@@ -1303,6 +1289,7 @@ ${comprovantesHTML}
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
   window.open(URL.createObjectURL(blob),'_blank');
 }
+
 
 
 
