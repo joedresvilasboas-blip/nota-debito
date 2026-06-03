@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Nota Débito">
+<meta name="theme-color" content="#111111">
 <title>Nota de Débito</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -27,26 +28,21 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:16px;overscroll-behavior:none}
 .app{max-width:480px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
 
-/* Header */
 .hdr{padding:14px 16px 10px;border-bottom:.5px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:20}
 .hdr h1{font-size:18px;font-weight:700;letter-spacing:-.3px}
 .hdr p{font-size:11px;color:var(--text2);margin-top:1px}
 
-/* Nav */
 .nav{display:flex;border-bottom:.5px solid var(--border);background:var(--bg);position:sticky;top:57px;z-index:20}
 .nav button{flex:1;padding:9px 2px 7px;font-size:10px;background:none;border:none;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;transition:all .15s}
 .nav button.active{color:var(--text);border-bottom-color:var(--text);font-weight:600}
 .nav button .ni{font-size:19px;display:block;margin:0 auto 2px}
 
-/* Screen */
-.screen{display:none;padding:16px;padding-bottom:32px}
+.screen{display:none;padding:16px;padding-bottom:40px}
 .screen.active{display:block}
 
-/* Labels */
 .slabel{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin:20px 0 8px}
 .slabel:first-child{margin-top:0}
 
-/* Form */
 label{font-size:13px;color:var(--text2);display:block;margin:12px 0 4px}
 label:first-child{margin-top:0}
 select,input[type=text],input[type=number],input[type=date],textarea{
@@ -58,7 +54,6 @@ select,input[type=text],input[type=number],input[type=date],textarea{
 select:focus,input:focus,textarea:focus{border-color:var(--primary)}
 textarea{resize:vertical;min-height:68px}
 
-/* Buttons */
 .btn{width:100%;padding:13px;font-size:15px;font-family:inherit;border:.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;transition:opacity .15s}
 .btn:active{opacity:.65}
 .btn-primary{background:var(--primary);color:var(--primary-fg);border-color:var(--primary)}
@@ -67,45 +62,38 @@ textarea{resize:vertical;min-height:68px}
 .btn-ghost{border-color:transparent;color:var(--text2)}
 .mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
 
-/* Tipo */
 .tipo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 4px}
 .tipo-btn{padding:11px 8px;font-size:14px;font-family:inherit;border:.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
 .tipo-btn.sel{background:var(--primary);color:var(--primary-fg);border-color:var(--primary)}
 
-/* Cards */
 .card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius);padding:13px 15px;margin-bottom:10px}
 .info-card{background:var(--bg2);border-radius:var(--radius);padding:13px 15px;margin-bottom:10px}
 .pf{margin-bottom:9px}.pf:last-child{margin-bottom:0}
 .pf .fl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
 .pf .fv{font-size:14px;color:var(--text);margin-top:1px}
 
-/* Badges */
 .badge{display:inline-block;font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;margin-right:4px;margin-top:4px}
 .b-transp{background:var(--blue-bg);color:var(--blue)}
 .b-alim{background:var(--green-bg);color:var(--green)}
 .b-nf{background:var(--purple-bg);color:var(--purple)}
 .b-foto{background:var(--amber-bg);color:var(--amber)}
 
-/* Alerts */
 .alert{padding:11px 13px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:12px;line-height:1.5}
 .a-warn{background:var(--amber-bg);color:var(--amber)}
 .a-ok{background:var(--green-bg);color:var(--green)}
 .a-err{background:var(--red-bg);color:var(--red)}
 .a-info{background:var(--blue-bg);color:var(--blue)}
 
-/* Drop areas */
-.drop{border:1.5px dashed var(--border2);border-radius:var(--radius-sm);padding:18px 16px;text-align:center;cursor:pointer;margin-top:8px;transition:background .15s}
+.drop{border:1.5px dashed var(--border2);border-radius:var(--radius-sm);padding:18px 16px;text-align:center;cursor:pointer;margin-top:8px}
 .drop:active{background:var(--bg2)}
 .drop .di{font-size:28px}
 .drop p{font-size:13px;color:var(--text2);margin-top:5px;line-height:1.4}
 
-/* Thumb */
 .thumb{display:flex;align-items:center;gap:10px;background:var(--bg2);border-radius:var(--radius-sm);padding:9px 12px;margin-top:6px;font-size:13px}
 .thumb .ti{font-size:20px}
 .thumb .tn{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .thumb .tr{background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:2px 4px}
 
-/* Expense items */
 .exp-item{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius);padding:13px;margin-bottom:10px}
 .exp-row{display:flex;justify-content:space-between;align-items:flex-start}
 .exp-desc{font-size:15px;font-weight:500}
@@ -113,28 +101,28 @@ textarea{resize:vertical;min-height:68px}
 .exp-val{font-size:16px;font-weight:600;white-space:nowrap;margin-left:10px}
 .exp-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 
-/* Total bar */
 .total-bar{background:var(--bg2);border-radius:var(--radius);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 
-/* Empty */
 .empty{text-align:center;padding:40px 16px;color:var(--text2);font-size:14px}
 .empty .ei{font-size:40px;display:block;margin-bottom:10px;opacity:.3}
 
-/* Event cards */
-.ev-card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius);padding:13px 15px;margin-bottom:10px;cursor:pointer;transition:background .1s}
+.ev-card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius);padding:13px 15px;margin-bottom:10px;cursor:pointer}
 .ev-card:active{background:var(--bg2)}
 .ev-card.selected{border-color:var(--primary);border-width:1.5px}
 .ev-title{font-size:15px;font-weight:600}
 .ev-sub{font-size:12px;color:var(--text2);margin-top:3px}
 
-/* Modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-end}
 .modal-overlay.open{display:flex}
 .modal{background:var(--bg);border-radius:20px 20px 0 0;padding:20px 16px 40px;width:100%;max-height:92dvh;overflow-y:auto}
 .modal h2{font-size:17px;font-weight:600;margin-bottom:16px}
 .modal-close{float:right;background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);margin-top:-4px}
 
-/* QR overlay */
+/* Banner instalar */
+.install-banner{background:var(--blue-bg);color:var(--blue);padding:12px 16px;font-size:13px;line-height:1.5;display:flex;align-items:flex-start;gap:10px}
+.install-banner .ib-icon{font-size:22px;flex-shrink:0;margin-top:1px}
+.install-banner .ib-close{background:none;border:none;color:var(--blue);cursor:pointer;font-size:18px;margin-left:auto;flex-shrink:0}
+
 #qr-video-wrap{display:none;position:fixed;inset:0;background:#000;z-index:200;flex-direction:column;align-items:center;justify-content:center}
 #qr-video-wrap.open{display:flex}
 #qr-video{width:100%;max-width:400px;border-radius:12px}
@@ -146,10 +134,22 @@ textarea{resize:vertical;min-height:68px}
 </head>
 <body>
 <div class="app">
+
+  <!-- Banner instalar PWA -->
+  <div class="install-banner" id="install-banner" style="display:none">
+    <span class="ib-icon">📲</span>
+    <div>
+      <b>Instale o app para não perder dados!</b><br>
+      <span id="install-instructions"></span>
+    </div>
+    <button class="ib-close" onclick="fecharBanner()">✕</button>
+  </div>
+
   <div class="hdr">
     <h1>📄 Nota de Débito</h1>
     <p>Joedres Ferreira Vilas Boas · CNPJ 52.150.205/0001-57</p>
   </div>
+
   <nav class="nav">
     <button class="active" onclick="go('eventos')" id="tab-eventos"><span class="ni">📅</span>eventos</button>
     <button onclick="go('lancar')" id="tab-lancar"><span class="ni">➕</span>lançar</button>
@@ -160,7 +160,7 @@ textarea{resize:vertical;min-height:68px}
 
   <!-- EVENTOS -->
   <div id="screen-eventos" class="screen active">
-    <button class="btn btn-primary" onclick="openModal('modal-evento')">➕ Novo evento</button>
+    <button class="btn btn-primary" onclick="openModal('modal-evento');limparModalEvento()">➕ Novo evento</button>
     <div class="slabel" style="margin-top:20px">Eventos cadastrados</div>
     <div id="eventos-list"></div>
   </div>
@@ -169,16 +169,33 @@ textarea{resize:vertical;min-height:68px}
   <div id="screen-lancar" class="screen">
     <div class="slabel">Evento ativo</div>
     <div id="evento-ativo-info"></div>
-    <button class="btn btn-ghost mt8" onclick="go('eventos')" style="font-size:13px;">🔄 Trocar evento</button>
+    <button class="btn btn-ghost mt8" onclick="go('eventos')" style="font-size:13px">🔄 Trocar evento</button>
 
     <div class="slabel">Tipo de despesa</div>
-    <div class="tipo-grid">
+    <div class="tipo-grid" style="grid-template-columns:1fr 1fr 1fr">
       <button class="tipo-btn sel" id="btn-transp" onclick="setTipo('transporte')">🚗 Transporte</button>
       <button class="tipo-btn" id="btn-alim" onclick="setTipo('alimentacao')">🍽️ Alimentação</button>
+      <button class="tipo-btn" id="btn-outro" onclick="setTipo('outro')">➕ Outro</button>
     </div>
 
-    <label>Descrição</label>
-    <input type="text" id="desc" placeholder="Ex: Reembolso Transporte Dia 1" />
+    <div id="outro-wrap" style="display:none;margin-top:8px">
+      <label>Qual tipo de despesa?</label>
+      <input type="text" id="outro-tipo" placeholder="Ex: Farmácia, Estacionamento..." oninput="atualizarDesc()" />
+    </div>
+
+    <label>Dia do evento</label>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:4px">
+      <button class="tipo-btn sel" id="dia-btn-1" onclick="setDia(1)">Dia 1</button>
+      <button class="tipo-btn" id="dia-btn-2" onclick="setDia(2)">Dia 2</button>
+      <button class="tipo-btn" id="dia-btn-3" onclick="setDia(3)">Dia 3</button>
+      <button class="tipo-btn" id="dia-btn-4" onclick="setDia(4)">Dia 4</button>
+      <button class="tipo-btn" id="dia-btn-5" onclick="setDia(5)">Dia 5</button>
+    </div>
+
+    <div class="card" style="margin-top:8px;margin-bottom:4px">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Descrição gerada</div>
+      <div id="desc-preview" style="font-size:14px;color:var(--text);line-height:1.5;font-weight:500"></div>
+    </div>
 
     <label>Data</label>
     <input type="date" id="data" />
@@ -217,9 +234,9 @@ textarea{resize:vertical;min-height:68px}
 
   <!-- GERAR -->
   <div id="screen-gerar" class="screen">
-    <div class="slabel">Selecione o evento para gerar</div>
+    <div class="slabel">Evento</div>
     <div id="gerar-evento-sel"></div>
-    <div class="slabel" style="margin-top:16px">Dados da nota</div>
+    <div class="slabel" style="margin-top:4px">Dados da nota</div>
     <label>Número da nota</label>
     <input type="text" id="num-nota" />
     <label>Referência</label>
@@ -227,9 +244,9 @@ textarea{resize:vertical;min-height:68px}
     <label>Vencimento</label>
     <input type="date" id="venc-nota" />
     <div id="gerar-preview" style="margin-top:16px"></div>
-    <button class="btn btn-primary mt16" onclick="gerarPDF()">📥 Gerar Nota de Débito</button>
+    <button class="btn btn-primary mt8" onclick="gerarPDF()">📥 Gerar Nota de Débito</button>
     <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:8px">Abre em nova aba — salve como PDF</p>
-    <button class="btn btn-danger btn-ghost mt16" onclick="limparEvento()">🗑️ Limpar despesas do evento selecionado</button>
+    <button class="btn btn-danger btn-ghost mt16" onclick="limparEvento()">🗑️ Limpar despesas do evento</button>
   </div>
 
   <!-- CONFIG -->
@@ -260,7 +277,17 @@ textarea{resize:vertical;min-height:68px}
     <div class="info-card">
       <div class="pf"><div class="fl">Financeiro</div><div class="fv">financeiro@platmentorias.com.br</div></div>
     </div>
-    <div class="alert a-warn mt16">⚠️ Prints de tela do banco <b>não são aceitos</b>.<br><br>🚗 Uber/99: envie PDF com trajeto completo.</div>
+    <div class="alert a-warn mt16">
+      ⚠️ Prints de tela do banco <b>não são aceitos</b>.<br><br>
+      🚗 Uber/99: envie PDF com trajeto completo.
+    </div>
+    <div class="slabel">Armazenamento</div>
+    <div class="info-card" style="font-size:13px">
+      <div id="storage-info">Calculando...</div>
+      <button class="btn btn-sm mt8" onclick="exportarBackup()">💾 Exportar backup</button>
+      <label style="margin-top:10px">Importar backup</label>
+      <input type="file" id="backup-input" accept=".json" onchange="importarBackup(event)" />
+    </div>
   </div>
 </div>
 
@@ -280,7 +307,7 @@ textarea{resize:vertical;min-height:68px}
       <option value="FL">FL / Black Friday — Ignição Digital</option>
       <option value="FHT">FHT — Formula High Ticket LTDA</option>
     </select>
-    <div id="ev-tomador-info" style="font-size:12px;color:var(--text2);margin:-6px 0 8px;display:none"></div>
+    <div id="ev-tomador-info" style="font-size:12px;color:var(--text2);margin:-4px 0 8px;display:none"></div>
     <label>Cidade / local</label>
     <input type="text" id="ev-cidade" placeholder="Ex: Campinas – SP" />
     <label>Data início</label>
@@ -301,6 +328,7 @@ textarea{resize:vertical;min-height:68px}
 
 <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
+// ─── DADOS ────────────────────────────────────────────────────
 const TOMADORES={
   PLAT:{nome:'PLAT MENTORIAS E TREINAMENTOS LTDA',cnpj:'45.805.035/0001-36',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'},
   INSIDER:{nome:'INSIDER MENTORIAS E TREINAMENTOS LTDA',cnpj:'34.295.555/0001-20',end:''},
@@ -309,29 +337,128 @@ const TOMADORES={
 };
 const ME={nome:'Joedres Ferreira Vilas Boas',cnpj:'52.150.205/0001-57',email:'joedres_vilasboas@hotmail.com',tel:'11 97547-8716',banco:'BTG Pactual S.A.',cod:'208',ag:'0050',conta:'848596-8'};
 
-let eventos=JSON.parse(localStorage.getItem('nd_eventos')||'[]');
-let despesas=JSON.parse(localStorage.getItem('nd_despesas_v4')||'[]');
-let notaCounter=parseInt(localStorage.getItem('nd_counter')||'0');
-let eventoAtivo=localStorage.getItem('nd_evento_ativo')||'';
+// ─── ESTADO ───────────────────────────────────────────────────
+let S={eventos:[],despesas:[],notaCounter:0,eventoAtivo:''};
 let tipo='transporte';
 let nfLink='';
 let attachs=[];
-let qrStream=null;
-let qrInterval=null;
+let qrStream=null,qrInterval=null;
 let gerarEventoId='';
 
-function saveAll(){
-  localStorage.setItem('nd_eventos',JSON.stringify(eventos));
-  localStorage.setItem('nd_despesas_v4',JSON.stringify(despesas));
-  localStorage.setItem('nd_counter',String(notaCounter));
-  localStorage.setItem('nd_evento_ativo',eventoAtivo);
+// ─── STORAGE ──────────────────────────────────────────────────
+// Salva em MÚLTIPLAS chaves para redundância — se uma falhar, as outras ficam
+function salvar(){
+  try{
+    const json=JSON.stringify(S);
+    // Chave principal
+    localStorage.setItem('nd_main',json);
+    // Backup com timestamp
+    localStorage.setItem('nd_backup_'+Math.floor(Date.now()/3600000),json);
+    // Limpar backups antigos (manter só os 48 mais recentes = 2 dias)
+    const keys=Object.keys(localStorage).filter(k=>k.startsWith('nd_backup_')).sort();
+    if(keys.length>48) keys.slice(0,keys.length-48).forEach(k=>localStorage.removeItem(k));
+    atualizarStorageInfo();
+  }catch(e){
+    console.error('Erro ao salvar:',e);
+    // Se localStorage cheio (imagens pesadas), salva sem imagens
+    try{
+      const semImagens={...S,despesas:S.despesas.map(d=>({...d,attachs:(d.attachs||[]).map(a=>({name:a.name,type:a.type,data:null}))}))};
+      localStorage.setItem('nd_main',JSON.stringify(semImagens));
+      mostrarMsg('⚠️ Armazenamento cheio: comprovantes não salvos. Exporte o backup!','warn');
+    }catch(e2){console.error(e2)}
+  }
 }
 
+function carregar(){
+  try{
+    const json=localStorage.getItem('nd_main');
+    if(json){S=JSON.parse(json);return true}
+    // Tentar backups
+    const keys=Object.keys(localStorage).filter(k=>k.startsWith('nd_backup_')).sort().reverse();
+    if(keys.length){S=JSON.parse(localStorage.getItem(keys[0]));return true}
+  }catch(e){console.error('Erro ao carregar:',e)}
+  return false;
+}
+
+function atualizarStorageInfo(){
+  try{
+    let total=0;
+    for(let k in localStorage){if(localStorage.hasOwnProperty(k))total+=localStorage[k].length*2}
+    const kb=(total/1024).toFixed(0);
+    const mb=(total/1024/1024).toFixed(1);
+    const pct=Math.min(100,Math.round(total/(5*1024*1024)*100));
+    document.getElementById('storage-info').innerHTML=
+      `Usado: <b>${mb}MB</b> de ~5MB (${pct}%)<br>
+       <div style="background:var(--border);border-radius:4px;height:6px;margin-top:6px">
+         <div style="background:${pct>80?'var(--red)':'var(--green)'};width:${pct}%;height:6px;border-radius:4px"></div>
+       </div>`;
+  }catch(e){}
+}
+
+function exportarBackup(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='nota-debito-backup-'+new Date().toISOString().split('T')[0]+'.json';
+  a.click();URL.revokeObjectURL(url);
+}
+
+function importarBackup(e){
+  const f=e.target.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const obj=JSON.parse(ev.target.result);
+      if(!obj.eventos||!obj.despesas){alert('Arquivo inválido.');return}
+      if(!confirm('Substituir todos os dados pelo backup?'))return;
+      S=obj;salvar();renderTudo();
+      alert('Backup importado com sucesso!');
+    }catch(err){alert('Erro ao ler arquivo.')}
+  };
+  reader.readAsText(f);
+  e.target.value='';
+}
+
+function mostrarMsg(txt,tipo){
+  // toast simples
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;white-space:nowrap;max-width:90vw';
+  t.textContent=txt;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+// ─── PWA BANNER ───────────────────────────────────────────────
+function mostrarBannerInstalar(){
+  if(localStorage.getItem('nd_banner_fechado'))return;
+  const isStandalone=window.matchMedia('(display-mode:standalone)').matches||window.navigator.standalone;
+  if(isStandalone)return; // Já instalado
+  const banner=document.getElementById('install-banner');
+  const inst=document.getElementById('install-instructions');
+  const ua=navigator.userAgent;
+  if(/android/i.test(ua)){
+    inst.innerHTML='Toque em <b>⋮ Menu</b> → <b>"Adicionar à tela inicial"</b> para salvar os dados com segurança.';
+  }else if(/iphone|ipad/i.test(ua)){
+    inst.innerHTML='Toque em <b>□ Compartilhar</b> → <b>"Adicionar à Tela de Início"</b> para salvar os dados com segurança.';
+  }else{
+    inst.innerHTML='Adicione à tela inicial do celular para garantir que os dados fiquem salvos.';
+  }
+  banner.style.display='flex';
+}
+
+function fecharBanner(){
+  document.getElementById('install-banner').style.display='none';
+  localStorage.setItem('nd_banner_fechado','1');
+}
+
+// ─── UTILS ────────────────────────────────────────────────────
 function fv(v){return'R$ '+parseFloat(v).toFixed(2).replace('.',',')}
 function fd(s){if(!s)return'';const[y,m,d]=s.split('-');return d+'/'+m+'/'+y}
 function todayStr(){return new Date().toISOString().split('T')[0]}
 function padNum(n){return String(n).padStart(4,'0')}
+function mesToRef(){const now=new Date();const m=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return m[now.getMonth()]+'-'+String(now.getFullYear()).slice(2)}
 
+// ─── NAV ──────────────────────────────────────────────────────
 function go(s){
   document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
@@ -342,29 +469,33 @@ function go(s){
   if(s==='lancar')renderEventoAtivo();
   if(s==='despesas')renderDespesas();
   if(s==='gerar')renderGerar();
+  if(s==='config')atualizarStorageInfo();
 }
 
-/* ---- EVENTOS ---- */
+function renderTudo(){renderEventos();renderEventoAtivo();renderDespesas();}
+
+// ─── EVENTOS ──────────────────────────────────────────────────
 function renderEventos(){
   const el=document.getElementById('eventos-list');
-  if(!eventos.length){
+  if(!S.eventos.length){
     el.innerHTML='<div class="empty"><span class="ei">📅</span>Nenhum evento cadastrado.<br>Crie um para começar!</div>';
     return;
   }
-  el.innerHTML=eventos.map(ev=>{
-    const tom=TOMADORES[ev.tomador]||{};
-    const desp=despesas.filter(d=>d.eventoId===ev.id);
+  el.innerHTML=S.eventos.map(ev=>{
+    const desp=S.despesas.filter(d=>d.eventoId===ev.id);
     const total=desp.reduce((s,d)=>s+d.valor,0);
-    const isAtivo=ev.id===eventoAtivo;
+    const isAtivo=ev.id===S.eventoAtivo;
     return`<div class="ev-card${isAtivo?' selected':''}" onclick="selecionarEvento('${ev.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
+        <div style="flex:1">
           <div class="ev-title">${ev.nome}</div>
-          <div class="ev-sub">${ev.tomador} · ${ev.cidade||''}</div>
+          <div class="ev-sub">${ev.tomador}${ev.cidade?' · '+ev.cidade:''}</div>
           <div class="ev-sub">${fd(ev.inicio)}${ev.fim&&ev.fim!==ev.inicio?' → '+fd(ev.fim):''}</div>
-          ${desp.length?`<div style="margin-top:6px;font-size:13px;font-weight:500">${desp.length} despesa(s) · ${fv(total)}</div>`:'<div style="margin-top:6px;font-size:12px;color:var(--text3)">Sem despesas ainda</div>'}
+          ${desp.length
+            ?`<div style="margin-top:6px;font-size:13px;font-weight:500">${desp.length} despesa(s) · ${fv(total)}</div>`
+            :'<div style="margin-top:6px;font-size:12px;color:var(--text3)">Sem despesas ainda</div>'}
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;margin-left:8px">
           ${isAtivo?'<span style="font-size:11px;background:var(--green-bg);color:var(--green);padding:3px 8px;border-radius:20px;font-weight:600">✓ Ativo</span>':''}
           <button class="btn btn-sm" onclick="event.stopPropagation();editarEvento('${ev.id}')" style="font-size:12px">✏️</button>
           <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deletarEvento('${ev.id}')" style="font-size:12px">🗑️</button>
@@ -375,11 +506,8 @@ function renderEventos(){
 }
 
 function selecionarEvento(id){
-  eventoAtivo=id;
-  saveAll();
-  renderEventos();
-  // Pequeno feedback
-  setTimeout(()=>go('lancar'),300);
+  S.eventoAtivo=id;salvar();renderEventos();
+  setTimeout(()=>go('lancar'),250);
 }
 
 function openModal(id){document.getElementById(id).classList.add('open')}
@@ -400,36 +528,30 @@ function salvarEvento(){
   const fim=document.getElementById('ev-fim').value;
   const editId=document.getElementById('ev-edit-id').value;
   const msg=document.getElementById('ev-msg');
-  if(!nome){msg.style.color='var(--red)';msg.textContent='⚠️ Informe o nome do evento.';return}
+  if(!nome){msg.style.color='var(--red)';msg.textContent='⚠️ Informe o nome.';return}
   if(!tomador){msg.style.color='var(--red)';msg.textContent='⚠️ Selecione o tomador.';return}
   if(!inicio){msg.style.color='var(--red)';msg.textContent='⚠️ Informe a data de início.';return}
   if(editId){
-    const idx=eventos.findIndex(e=>e.id===editId);
-    if(idx>-1) eventos[idx]={...eventos[idx],nome,tomador,cidade,inicio,fim};
-  } else {
-    eventos.push({id:'ev_'+Date.now(),nome,tomador,cidade,inicio,fim});
+    const idx=S.eventos.findIndex(e=>e.id===editId);
+    if(idx>-1)S.eventos[idx]={...S.eventos[idx],nome,tomador,cidade,inicio,fim};
+  }else{
+    const novoId='ev_'+Date.now();
+    S.eventos.push({id:novoId,nome,tomador,cidade,inicio,fim});
+    if(!S.eventoAtivo)S.eventoAtivo=novoId;
   }
-  saveAll();
-  closeModal('modal-evento');
-  limparModalEvento();
-  renderEventos();
+  salvar();closeModal('modal-evento');limparModalEvento();renderEventos();
 }
 
 function limparModalEvento(){
-  document.getElementById('ev-edit-id').value='';
-  document.getElementById('ev-nome').value='';
+  ['ev-edit-id','ev-nome','ev-cidade','ev-inicio','ev-fim'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('ev-tomador').value='';
-  document.getElementById('ev-cidade').value='';
-  document.getElementById('ev-inicio').value='';
-  document.getElementById('ev-fim').value='';
   document.getElementById('ev-msg').textContent='';
   document.getElementById('ev-tomador-info').style.display='none';
   document.getElementById('modal-evento-title').textContent='Novo evento';
 }
 
 function editarEvento(id){
-  const ev=eventos.find(e=>e.id===id);
-  if(!ev)return;
+  const ev=S.eventos.find(e=>e.id===id);if(!ev)return;
   document.getElementById('ev-edit-id').value=ev.id;
   document.getElementById('ev-nome').value=ev.nome;
   document.getElementById('ev-tomador').value=ev.tomador;
@@ -437,77 +559,107 @@ function editarEvento(id){
   document.getElementById('ev-inicio').value=ev.inicio;
   document.getElementById('ev-fim').value=ev.fim||'';
   document.getElementById('modal-evento-title').textContent='Editar evento';
-  updateEvTomador();
-  openModal('modal-evento');
+  updateEvTomador();openModal('modal-evento');
 }
 
 function deletarEvento(id){
   if(!confirm('Deletar este evento e todas as suas despesas?'))return;
-  eventos=eventos.filter(e=>e.id!==id);
-  despesas=despesas.filter(d=>d.eventoId!==id);
-  if(eventoAtivo===id) eventoAtivo='';
-  saveAll();
-  renderEventos();
+  S.eventos=S.eventos.filter(e=>e.id!==id);
+  S.despesas=S.despesas.filter(d=>d.eventoId!==id);
+  if(S.eventoAtivo===id)S.eventoAtivo='';
+  salvar();renderEventos();
 }
 
-/* ---- LANÇAR ---- */
+// ─── LANÇAR ───────────────────────────────────────────────────
 function renderEventoAtivo(){
   const el=document.getElementById('evento-ativo-info');
-  if(!eventoAtivo){
+  if(!S.eventoAtivo){
     el.innerHTML='<div class="alert a-warn">⚠️ Nenhum evento selecionado. Vá em "eventos" e selecione um.</div>';
     return;
   }
-  const ev=eventos.find(e=>e.id===eventoAtivo);
+  const ev=S.eventos.find(e=>e.id===S.eventoAtivo);
   if(!ev){el.innerHTML='<div class="alert a-warn">⚠️ Evento não encontrado.</div>';return}
   const tom=TOMADORES[ev.tomador]||{};
   el.innerHTML=`<div class="card">
     <div style="font-size:15px;font-weight:600">${ev.nome}</div>
     <div style="font-size:12px;color:var(--text2);margin-top:3px">${tom.nome||ev.tomador}</div>
-    <div style="font-size:12px;color:var(--text2)">${ev.cidade||''} · ${fd(ev.inicio)}${ev.fim&&ev.fim!==ev.inicio?' → '+fd(ev.fim):''}</div>
+    <div style="font-size:12px;color:var(--text2)">${ev.cidade||''}${ev.cidade&&ev.inicio?' · ':''}${fd(ev.inicio)}${ev.fim&&ev.fim!==ev.inicio?' → '+fd(ev.fim):''}</div>
   </div>`;
-  // Set default date to event start
-  if(!document.getElementById('data').value && ev.inicio){
+  if(!document.getElementById('data').value&&ev.inicio){
     document.getElementById('data').value=ev.inicio;
   }
+  atualizarDesc();
 }
+
+let diaAtivo=1;
 
 function setTipo(t){
   tipo=t;
   document.getElementById('btn-transp').className='tipo-btn'+(t==='transporte'?' sel':'');
   document.getElementById('btn-alim').className='tipo-btn'+(t==='alimentacao'?' sel':'');
+  document.getElementById('btn-outro').className='tipo-btn'+(t==='outro'?' sel':'');
+  document.getElementById('outro-wrap').style.display=t==='outro'?'block':'none';
+  if(t!=='outro') document.getElementById('outro-tipo').value='';
+  atualizarDesc();
 }
 
-/* ---- QR CODE ---- */
+function setDia(d){
+  diaAtivo=d;
+  for(let i=1;i<=5;i++){
+    document.getElementById('dia-btn-'+i).className='tipo-btn'+(i===d?' sel':'');
+  }
+  atualizarDesc();
+}
+
+function getNomeEvento(){
+  const ev=S.eventos.find(e=>e.id===S.eventoAtivo);
+  if(!ev)return{nome:'(evento)',local:''};
+  return{nome:ev.nome,local:ev.cidade||''};
+}
+
+function getTipoLabel(){
+  if(tipo==='transporte')return'Transporte';
+  if(tipo==='alimentacao')return'Alimentação';
+  const v=(document.getElementById('outro-tipo')||{}).value||'';
+  return v.trim()||'Outro';
+}
+
+function atualizarDesc(){
+  const ev=getNomeEvento();
+  const label=getTipoLabel();
+  const local=ev.local?ev.nome+' | '+ev.local:ev.nome;
+  const linha1='Reembolso '+label;
+  const linha2='Dia '+diaAtivo+' — '+local;
+  const el=document.getElementById('desc-preview');
+  if(el) el.innerHTML='<span>'+linha1+'</span><br><span style="color:var(--text2);font-size:13px">'+linha2+'</span>';
+}
+
+// ─── QR CODE ──────────────────────────────────────────────────
 async function iniciarQR(){
-  const wrap=document.getElementById('qr-video-wrap');
-  const video=document.getElementById('qr-video');
   try{
     qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const video=document.getElementById('qr-video');
     video.srcObject=qrStream;
-    wrap.classList.add('open');
+    document.getElementById('qr-video-wrap').classList.add('open');
     const canvas=document.createElement('canvas');
     const ctx=canvas.getContext('2d');
     qrInterval=setInterval(()=>{
       if(video.readyState===video.HAVE_ENOUGH_DATA){
-        canvas.width=video.videoWidth;
-        canvas.height=video.videoHeight;
+        canvas.width=video.videoWidth;canvas.height=video.videoHeight;
         ctx.drawImage(video,0,0);
         const img=ctx.getImageData(0,0,canvas.width,canvas.height);
         const code=jsQR(img.data,img.width,img.height);
-        if(code&&code.data){
-          pararQR();
-          setNF(code.data);
-        }
+        if(code&&code.data){pararQR();setNF(code.data)}
       }
     },250);
-  } catch(e){
-    alert('Não foi possível acessar a câmera. Cole o link manualmente.');
+  }catch(e){
+    alert('Câmera não disponível. Cole o link manualmente.');
   }
 }
 
 function pararQR(){
   clearInterval(qrInterval);
-  if(qrStream) qrStream.getTracks().forEach(t=>t.stop());
+  if(qrStream)qrStream.getTracks().forEach(t=>t.stop());
   qrStream=null;
   document.getElementById('qr-video-wrap').classList.remove('open');
 }
@@ -544,58 +696,78 @@ function renderAttachs(){
 }
 function rmAttach(i){attachs.splice(i,1);renderAttachs()}
 
-function showMsg(txt,t){
+function addDespesa(){
+  if(!S.eventoAtivo){showAddMsg('⚠️ Selecione um evento primeiro.','err');return}
+  // Validar "outro"
+  if(tipo==='outro'){
+    const outroval=document.getElementById('outro-tipo').value.trim();
+    if(!outroval){showAddMsg('⚠️ Descreva o tipo de despesa.','err');return}
+  }
+  const data=document.getElementById('data').value;
+  const valor=parseFloat(document.getElementById('valor').value);
+  if(!data){showAddMsg('⚠️ Informe a data.','err');return}
+  if(!valor||valor<=0){showAddMsg('⚠️ Informe um valor válido.','err');return}
+
+  // Montar descrição automaticamente
+  const ev=getNomeEvento();
+  const label=getTipoLabel();
+  const local=ev.local?ev.nome+' | '+ev.local:ev.nome;
+  const desc='Reembolso '+label+'\nDia '+diaAtivo+' — '+local;
+
+  S.despesas.push({
+    id:Date.now(),eventoId:S.eventoAtivo,desc,data,valor,tipo,
+    diaAtivo,
+    nfLink,
+    attachs:attachs.map(a=>({name:a.name,type:a.type,data:a.data}))
+  });
+  salvar();
+
+  // Limpa campos — mantém data, tipo e dia
+  const dataAtual=document.getElementById('data').value;
+  document.getElementById('valor').value='';
+  document.getElementById('data').value=dataAtual;
+  if(tipo==='outro') document.getElementById('outro-tipo').value='';
+  clearNF();attachs=[];renderAttachs();
+  atualizarDesc();
+  showAddMsg('✅ Despesa adicionada!','ok');
+}
+
+function showAddMsg(txt,t){
   const el=document.getElementById('add-msg');
   el.style.color=t==='err'?'var(--red)':'var(--green)';
   el.textContent=txt;
   if(t==='ok')setTimeout(()=>el.textContent='',2500);
 }
 
-function addDespesa(){
-  if(!eventoAtivo){showMsg('⚠️ Selecione um evento primeiro.','err');return}
-  const desc=document.getElementById('desc').value.trim();
-  const data=document.getElementById('data').value;
-  const valor=parseFloat(document.getElementById('valor').value);
-  if(!desc){showMsg('⚠️ Preencha a descrição.','err');return}
-  if(!data){showMsg('⚠️ Informe a data.','err');return}
-  if(!valor||valor<=0){showMsg('⚠️ Informe um valor válido.','err');return}
-  despesas.push({
-    id:Date.now(),eventoId:eventoAtivo,desc,data,valor,tipo,
-    nfLink,
-    attachs:attachs.map(a=>({name:a.name,type:a.type,data:a.data}))
-  });
-  saveAll();
-  document.getElementById('desc').value='';
-  document.getElementById('valor').value='';
-  clearNF();attachs=[];renderAttachs();
-  showMsg('✅ Despesa adicionada!','ok');
-}
-
-/* ---- DESPESAS ---- */
+// ─── DESPESAS ─────────────────────────────────────────────────
 function renderDespesas(){
   const el=document.getElementById('despesas-list');
   const ta=document.getElementById('total-area');
-  const desp=eventoAtivo?despesas.filter(d=>d.eventoId===eventoAtivo):despesas;
-  const ev=eventoAtivo?eventos.find(e=>e.id===eventoAtivo):null;
+  const desp=S.eventoAtivo?S.despesas.filter(d=>d.eventoId===S.eventoAtivo):S.despesas;
+  const ev=S.eventoAtivo?S.eventos.find(e=>e.id===S.eventoAtivo):null;
   if(!desp.length){
-    ta.innerHTML=ev?`<div class="alert a-info">📅 Evento: <b>${ev.nome}</b></div>`:'';
+    ta.innerHTML=ev?`<div class="alert a-info">📅 <b>${ev.nome}</b></div>`:'';
     el.innerHTML='<div class="empty"><span class="ei">🧾</span>Nenhuma despesa lançada ainda</div>';
     return;
   }
   const total=desp.reduce((s,d)=>s+d.valor,0);
   ta.innerHTML=`
     ${ev?`<div class="alert a-info" style="margin-bottom:10px">📅 <b>${ev.nome}</b></div>`:''}
-    <div class="total-bar"><span style="font-size:13px;color:var(--text2)">Total</span><span style="font-size:22px;font-weight:600">${fv(total)}</span></div>`;
+    <div class="total-bar">
+      <span style="font-size:13px;color:var(--text2)">Total</span>
+      <span style="font-size:22px;font-weight:600">${fv(total)}</span>
+    </div>`;
   el.innerHTML=desp.map(d=>`
     <div class="exp-item">
       <div class="exp-row">
         <div style="flex:1">
-          <div class="exp-desc">${d.desc}</div>
+          <div class="exp-desc">${d.desc.split('\n')[0]}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:1px">${d.desc.split('\n')[1]||''}</div>
           <div class="exp-meta">${fd(d.data)}</div>
           <div>
             <span class="badge ${d.tipo==='transporte'?'b-transp':'b-alim'}">${d.tipo==='transporte'?'🚗 Transporte':'🍽️ Alimentação'}</span>
             ${d.nfLink?'<span class="badge b-nf">🔗 NF-e</span>':''}
-            ${d.attachs&&d.attachs.length?'<span class="badge b-foto">📎 '+d.attachs.length+' comprovante(s)</span>':''}
+            ${d.attachs&&d.attachs.length?'<span class="badge b-foto">📎 '+d.attachs.length+'</span>':''}
           </div>
         </div>
         <div class="exp-val">${fv(d.valor)}</div>
@@ -609,34 +781,26 @@ function renderDespesas(){
 
 function delDespesa(id){
   if(!confirm('Remover esta despesa?'))return;
-  despesas=despesas.filter(d=>d.id!==id);
-  saveAll();renderDespesas();
+  S.despesas=S.despesas.filter(d=>d.id!==id);
+  salvar();renderDespesas();
 }
 
-/* ---- GERAR ---- */
+// ─── GERAR ────────────────────────────────────────────────────
 function renderGerar(){
-  // Seletor de evento
+  if(!gerarEventoId&&S.eventoAtivo)gerarEventoId=S.eventoAtivo;
   const sel=document.getElementById('gerar-evento-sel');
-  sel.innerHTML=eventos.map(ev=>{
-    const desp=despesas.filter(d=>d.eventoId===ev.id);
-    const isSelected=ev.id===gerarEventoId||(gerarEventoId===''&&ev.id===eventoAtivo);
-    if(isSelected&&gerarEventoId==='') gerarEventoId=ev.id;
-    return`<div class="ev-card${isSelected?' selected':''}" onclick="selecionarGerarEvento('${ev.id}')">
+  sel.innerHTML=S.eventos.map(ev=>{
+    const desp=S.despesas.filter(d=>d.eventoId===ev.id);
+    const isSel=ev.id===gerarEventoId;
+    return`<div class="ev-card${isSel?' selected':''}" onclick="selecionarGerarEvento('${ev.id}')">
       <div class="ev-title">${ev.nome}</div>
-      <div class="ev-sub">${ev.tomador} · ${desp.length} despesa(s)</div>
+      <div class="ev-sub">${ev.tomador} · ${desp.length} despesa(s)${desp.length?' · '+fv(desp.reduce((s,d)=>s+d.valor,0)):''}</div>
     </div>`;
   }).join('')||'<div class="alert a-warn">Nenhum evento cadastrado.</div>';
 
-  // Número da nota automático
-  notaCounter++;
-  saveAll();
-  document.getElementById('num-nota').value=padNum(notaCounter);
-
-  // Referência automática
-  const now=new Date();
-  const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  document.getElementById('ref-nota').value=meses[now.getMonth()]+'-'+String(now.getFullYear()).slice(2);
-
+  S.notaCounter++;salvar();
+  document.getElementById('num-nota').value=padNum(S.notaCounter);
+  document.getElementById('ref-nota').value=mesToRef();
   renderGerarPreview();
 }
 
@@ -650,8 +814,7 @@ function selecionarGerarEvento(id){
 function renderGerarPreview(){
   const el=document.getElementById('gerar-preview');
   if(!gerarEventoId){el.innerHTML='';return}
-  const desp=despesas.filter(d=>d.eventoId===gerarEventoId);
-  const ev=eventos.find(e=>e.id===gerarEventoId);
+  const desp=S.despesas.filter(d=>d.eventoId===gerarEventoId);
   if(!desp.length){el.innerHTML='<div class="alert a-warn">Nenhuma despesa neste evento.</div>';return}
   const total=desp.reduce((s,d)=>s+d.valor,0);
   const transp=desp.filter(d=>d.tipo==='transporte').reduce((s,d)=>s+d.valor,0);
@@ -665,21 +828,21 @@ function renderGerarPreview(){
 
 function limparEvento(){
   if(!gerarEventoId){alert('Selecione um evento.');return}
-  const ev=eventos.find(e=>e.id===gerarEventoId);
-  if(!confirm('Limpar todas as despesas de "'+( ev?ev.nome:gerarEventoId)+'"?'))return;
-  despesas=despesas.filter(d=>d.eventoId!==gerarEventoId);
-  saveAll();renderGerarPreview();renderDespesas();
+  const ev=S.eventos.find(e=>e.id===gerarEventoId);
+  if(!confirm('Limpar todas as despesas de "'+(ev?ev.nome:'este evento')+'"?'))return;
+  S.despesas=S.despesas.filter(d=>d.eventoId!==gerarEventoId);
+  salvar();renderGerarPreview();
 }
 
-/* ---- GERAR PDF ---- */
+// ─── GERAR PDF ────────────────────────────────────────────────
 function gerarPDF(){
   if(!gerarEventoId){alert('Selecione um evento.');return}
-  const ev=eventos.find(e=>e.id===gerarEventoId);
+  const ev=S.eventos.find(e=>e.id===gerarEventoId);
   if(!ev){alert('Evento não encontrado.');return}
-  const desp=despesas.filter(d=>d.eventoId===gerarEventoId);
+  const desp=S.despesas.filter(d=>d.eventoId===gerarEventoId);
   if(!desp.length){alert('Nenhuma despesa neste evento.');return}
 
-  const num=document.getElementById('num-nota').value||padNum(notaCounter);
+  const num=(document.getElementById('num-nota').value||padNum(S.notaCounter)).padStart(4,'0');
   const ref=document.getElementById('ref-nota').value||'';
   const venc=document.getElementById('venc-nota').value;
   const tom=TOMADORES[ev.tomador]||{};
@@ -689,140 +852,118 @@ function gerarPDF(){
     <tr>
       <td style="text-align:center;border:1px solid #000;padding:5px 3px">${i+1}</td>
       <td style="border:1px solid #000;padding:5px 8px">
-        ${d.desc}
-        ${d.nfLink?'<br><small style="color:#444">NF-e: <a href="'+d.nfLink+'" style="color:#444">'+d.nfLink+'</a></small>':''}
+        ${d.desc.split('\n').join('<br>')}
+        ${d.nfLink?'<br><small style="color:#444">NF-e: <a href="'+d.nfLink+'" style="color:#333">'+d.nfLink+'</a></small>':''}
       </td>
       <td style="text-align:center;border:1px solid #000;padding:5px 3px">1</td>
       <td style="text-align:right;border:1px solid #000;padding:5px 8px;white-space:nowrap">${parseFloat(d.valor).toFixed(2).replace('.',',')}</td>
     </tr>`).join('');
 
-  // Comprovantes em base64 para imprimir
   let comprovantesHTML='';
   desp.forEach((d,di)=>{
     if(d.attachs&&d.attachs.length){
       d.attachs.forEach((a,ai)=>{
-        if(a.data){
-          if(a.type&&a.type.startsWith('image/')){
-            comprovantesHTML+=`
-              <div style="page-break-before:always;padding:20px">
-                <p style="font-size:11px;color:#555;margin-bottom:8px">Comprovante ${di+1}.${ai+1} — ${d.desc} (${fd(d.data)}) — ${a.name}</p>
-                <img src="${a.data}" style="max-width:100%;max-height:calc(100vh - 80px);object-fit:contain;display:block" />
-              </div>`;
-          } else if(a.type&&a.type.includes('pdf')){
-            comprovantesHTML+=`
-              <div style="page-break-before:always;padding:20px">
-                <p style="font-size:11px;color:#555;margin-bottom:8px">Comprovante ${di+1}.${ai+1} — ${d.desc} (${fd(d.data)}) — ${a.name}</p>
-                <embed src="${a.data}" type="application/pdf" width="100%" height="calc(100vh - 80px)" />
-              </div>`;
-          }
+        if(!a.data)return;
+        const label=`Comprovante ${di+1}.${ai+1} — ${d.desc} (${fd(d.data)}) — ${a.name}`;
+        if(a.type&&a.type.startsWith('image/')){
+          comprovantesHTML+=`<div style="page-break-before:always;padding:20px;text-align:center">
+            <p style="font-size:11px;color:#555;margin-bottom:12px;text-align:left">${label}</p>
+            <img src="${a.data}" style="max-width:100%;max-height:90vh;object-fit:contain" />
+          </div>`;
+        }else if(a.type&&a.type.includes('pdf')){
+          comprovantesHTML+=`<div style="page-break-before:always;padding:20px">
+            <p style="font-size:11px;color:#555;margin-bottom:12px">${label}</p>
+            <embed src="${a.data}" type="application/pdf" width="100%" height="90vh" />
+          </div>`;
         }
       });
     }
   });
 
-  const html=`<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Nota de Débito Nº ${num.padStart(4,'0')}</title>
+  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>Nota de Débito Nº ${num}</title>
 <style>
 @media print{.no-print{display:none!important}}
 body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#000;margin:20px}
 table.main{width:100%;border-collapse:collapse;border:1px solid #000}
 table.main>tbody>tr>td{border:1px solid #000;padding:8px 10px;vertical-align:top}
 .lbl{font-size:9px;font-weight:bold;color:#555;text-transform:uppercase;display:block;margin-bottom:2px}
-.val{font-size:12px}
-</style>
-</head>
-<body>
-<table class="main">
-<tbody>
+</style></head><body>
+<table class="main"><tbody>
 <tr>
   <td style="width:62%">
     <span class="lbl">Emitente · Nome / Razão Social</span>
-    <div class="val" style="font-weight:bold;font-size:13px">${ME.nome}</div>
-    <div class="val">CPF/CNPJ: ${ME.cnpj}</div>
-    <div class="val">E-mail: ${ME.email}</div>
-    <div class="val">Telefone: ${ME.tel}</div>
+    <div style="font-weight:bold;font-size:13px">${ME.nome}</div>
+    <div>CPF/CNPJ: ${ME.cnpj}</div>
+    <div>E-mail: ${ME.email}</div>
+    <div>Telefone: ${ME.tel}</div>
   </td>
   <td style="width:38%;text-align:center;vertical-align:middle">
     <div style="font-size:17px;font-weight:bold;letter-spacing:1px">NOTA DÉBITO</div>
-    <div style="font-size:13px;margin-top:5px">Nº <b>${num.padStart(4,'0')}</b></div>
+    <div style="font-size:13px;margin-top:5px">Nº <b>${num}</b></div>
   </td>
 </tr>
-<tr>
-  <td colspan="2" style="padding:8px 10px">
-    <table style="width:100%;border-collapse:collapse">
-      <tr>
-        <td style="width:33%;border:none;padding:0 0 0 0"><span class="lbl">Emissão</span><span class="val">${fd(todayStr())}</span></td>
-        <td style="width:33%;border:none;padding:0"><span class="lbl">Referência</span><span class="val">${ref}</span></td>
-        <td style="width:33%;border:none;padding:0"><span class="lbl">Vencimento</span><span class="val">${venc?fd(venc):'—'}</span></td>
-      </tr>
-    </table>
-  </td>
-</tr>
-<tr>
-  <td colspan="2">
-    <span class="lbl">Tomador do Serviço · Empresa</span>
-    <div class="val" style="font-weight:bold">${tom.nome||''}</div>
-    <div class="val">CNPJ: ${tom.cnpj||''}</div>
-    ${tom.end?'<div class="val">Endereço: '+tom.end+'</div>':''}
-  </td>
-</tr>
-<tr>
-  <td colspan="2">
-    <span class="lbl">Evento</span>
-    <div class="val">${ev.nome}${ev.cidade?' — '+ev.cidade:''}</div>
-  </td>
-</tr>
-<tr>
-  <td colspan="2" style="padding:0">
-    <table style="width:100%;border-collapse:collapse">
-      <thead>
-        <tr style="background:#f0f0f0">
-          <th style="border:1px solid #000;padding:5px 3px;width:6%;text-align:center;font-size:10px">Item</th>
-          <th style="border:1px solid #000;padding:5px 8px;text-align:left;font-size:10px">Descrição</th>
-          <th style="border:1px solid #000;padding:5px 3px;width:8%;text-align:center;font-size:10px">Unit.</th>
-          <th style="border:1px solid #000;padding:5px 8px;width:13%;text-align:right;font-size:10px">Valor (R$)</th>
-        </tr>
-      </thead>
-      <tbody>${linhas}</tbody>
-    </table>
-  </td>
-</tr>
-<tr>
-  <td colspan="2" style="text-align:right">
-    <span class="lbl">Valor total</span>
-    <span style="font-size:15px;font-weight:bold">R$ ${total.toFixed(2).replace('.',',')}</span>
-  </td>
-</tr>
-<tr>
-  <td colspan="2">
-    <span class="lbl">Dados bancários para pagamento</span>
-    <div class="val">Banco: <b>${ME.banco}</b> &nbsp;|&nbsp; Código: <b>${ME.cod}</b> &nbsp;|&nbsp; Agência: <b>${ME.ag}</b> &nbsp;|&nbsp; Conta: <b>${ME.conta}</b></div>
-    <div class="val" style="margin-top:3px">Favorecido: <b>${ME.nome}</b> &nbsp;|&nbsp; CPF/CNPJ vinculado: <b>${ME.cnpj}</b></div>
-  </td>
-</tr>
-<tr>
-  <td colspan="2" style="text-align:center;font-size:10px;color:#555">
-    A presente nota de débito não está sujeita a retenção de tributos na fonte.
-  </td>
-</tr>
-</tbody>
-</table>
+<tr><td colspan="2" style="padding:8px 10px">
+  <table style="width:100%;border-collapse:collapse">
+    <tr>
+      <td style="width:33%;border:none;padding:0"><span class="lbl">Emissão</span>${fd(todayStr())}</td>
+      <td style="width:33%;border:none;padding:0"><span class="lbl">Referência</span>${ref}</td>
+      <td style="width:33%;border:none;padding:0"><span class="lbl">Vencimento</span>${venc?fd(venc):'—'}</td>
+    </tr>
+  </table>
+</td></tr>
+<tr><td colspan="2">
+  <span class="lbl">Tomador do Serviço · Empresa</span>
+  <div style="font-weight:bold">${tom.nome||''}</div>
+  <div>CNPJ: ${tom.cnpj||''}</div>
+  ${tom.end?'<div>Endereço: '+tom.end+'</div>':''}
+</td></tr>
+<tr><td colspan="2">
+  <span class="lbl">Evento</span>
+  <div>${ev.nome}${ev.cidade?' — '+ev.cidade:''}</div>
+</td></tr>
+<tr><td colspan="2" style="padding:0">
+  <table style="width:100%;border-collapse:collapse">
+    <thead><tr style="background:#f0f0f0">
+      <th style="border:1px solid #000;padding:5px 3px;width:6%;text-align:center;font-size:10px">Item</th>
+      <th style="border:1px solid #000;padding:5px 8px;text-align:left;font-size:10px">Descrição</th>
+      <th style="border:1px solid #000;padding:5px 3px;width:8%;text-align:center;font-size:10px">Unit.</th>
+      <th style="border:1px solid #000;padding:5px 8px;width:13%;text-align:right;font-size:10px">Valor (R$)</th>
+    </tr></thead>
+    <tbody>${linhas}</tbody>
+  </table>
+</td></tr>
+<tr><td colspan="2" style="text-align:right">
+  <span class="lbl">Valor total</span>
+  <span style="font-size:15px;font-weight:bold">R$ ${total.toFixed(2).replace('.',',')}</span>
+</td></tr>
+<tr><td colspan="2">
+  <span class="lbl">Dados bancários para pagamento</span>
+  <div>Banco: <b>${ME.banco}</b> &nbsp;|&nbsp; Código: <b>${ME.cod}</b> &nbsp;|&nbsp; Agência: <b>${ME.ag}</b> &nbsp;|&nbsp; Conta: <b>${ME.conta}</b></div>
+  <div style="margin-top:3px">Favorecido: <b>${ME.nome}</b> &nbsp;|&nbsp; CPF/CNPJ vinculado: <b>${ME.cnpj}</b></div>
+</td></tr>
+<tr><td colspan="2" style="text-align:center;font-size:10px;color:#555">
+  A presente nota de débito não está sujeita a retenção de tributos na fonte.
+</td></tr>
+</tbody></table>
 ${comprovantesHTML}
 <button class="no-print" onclick="window.print()" style="display:block;margin:24px auto 0;padding:12px 32px;font-size:15px;cursor:pointer;background:#000;color:#fff;border:none;border-radius:8px">🖨️ Imprimir / Salvar como PDF</button>
-</body>
-</html>`;
+</body></html>`;
 
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  window.open(url,'_blank');
+  window.open(URL.createObjectURL(blob),'_blank');
 }
 
-// Init
+// ─── INIT ─────────────────────────────────────────────────────
+carregar();
+renderEventos();
+renderEventoAtivo();
 document.getElementById('data').value=todayStr();
 setTipo('transporte');
+setDia(1);
+atualizarDesc();
+mostrarBannerInstalar();
+atualizarStorageInfo();
 </script>
 </body>
 </html>
