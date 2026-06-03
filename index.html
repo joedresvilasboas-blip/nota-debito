@@ -208,10 +208,17 @@ textarea{resize:vertical;min-height:68px}
       oninput="mascaraValor(this)" style="font-size:18px;font-weight:500" />
 
     <div class="slabel">Nota fiscal / comprovante</div>
-    <div class="drop" onclick="iniciarQR()" id="qr-area">
-      <div class="di">📷</div>
-      <p>Toque para escanear QR code da NF-e<br><small>Usa a câmera do celular</small></p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px" id="qr-area">
+      <div class="drop" onclick="iniciarQR()" style="margin-top:0">
+        <div class="di">📷</div>
+        <p>Câmera<br><small>Escanear QR</small></p>
+      </div>
+      <div class="drop" onclick="document.getElementById('qr-galeria-input').click()" style="margin-top:0">
+        <div class="di">🖼️</div>
+        <p>Galeria<br><small>Ler QR da foto</small></p>
+      </div>
     </div>
+    <input type="file" id="qr-galeria-input" accept="image/*" style="display:none" onchange="lerQRdaGaleria(event)" />
     <div id="nf-show" style="display:none" class="thumb">
       <span class="ti">🔗</span>
       <span class="tn" id="nf-text"></span>
@@ -794,6 +801,40 @@ function rejeitarQR(){
   window._pendingQR=null;
   // Reabrir câmera
   setTimeout(()=>iniciarQR(),300);
+}
+
+function lerQRdaGaleria(e){
+  const f=e.target.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    try{
+      const img=new Image();
+      img.onload=async()=>{
+        const canvas=document.createElement('canvas');
+        canvas.width=img.width;
+        canvas.height=img.height;
+        canvas.getContext('2d').drawImage(img,0,0);
+        try{
+          // Tenta com ZXing
+          const hints=new Map();
+          hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.QR_CODE]);
+          hints.set(ZXing.DecodeHintType.TRY_HARDER,true);
+          const reader2=new ZXing.BrowserMultiFormatReader(hints);
+          const result=await reader2.decodeFromCanvas(canvas);
+          if(result&&result.getText()){
+            confirmarQR(result.getText());
+          }
+        }catch(err){
+          alert('QR code não encontrado na imagem. Tente uma foto mais nítida ou com melhor iluminação.');
+        }
+      };
+      img.src=ev.target.result;
+    }catch(err){
+      alert('Erro ao ler a imagem.');
+    }
+  };
+  reader.readAsDataURL(f);
+  e.target.value='';
 }
 
 function setNFManual(v){if(v.startsWith('http'))setNF(v.trim())}
