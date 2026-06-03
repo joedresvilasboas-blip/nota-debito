@@ -337,10 +337,12 @@ textarea{resize:vertical;min-height:68px}
     <div id="ev-tomador-info" style="font-size:12px;color:var(--text2);margin:-4px 0 8px;display:none"></div>
     <label>Cidade / local</label>
     <input type="text" id="ev-cidade" placeholder="Ex: Campinas – SP" />
-    <label>Data início</label>
-    <input type="date" id="ev-inicio" />
-    <label>Data fim</label>
-    <input type="date" id="ev-fim" />
+    <label>Período do evento</label>
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px">
+      <input type="date" id="ev-inicio" onchange="autoFim()" />
+      <span style="color:var(--text2);font-size:13px;text-align:center">→</span>
+      <input type="date" id="ev-fim" />
+    </div>
     <div id="ev-msg" style="font-size:13px;margin:10px 0;min-height:16px"></div>
     <button class="btn btn-primary" onclick="salvarEvento()">💾 Salvar evento</button>
   </div>
@@ -704,6 +706,12 @@ function selecionarEvento(id){
 
 function openModal(id){document.getElementById(id).classList.add('open')}
 function closeModal(id){document.getElementById(id).classList.remove('open')}
+
+function autoFim(){
+  const inicio=document.getElementById('ev-inicio').value;
+  const fim=document.getElementById('ev-fim').value;
+  if(inicio&&!fim) document.getElementById('ev-fim').value=inicio;
+}
 
 function updateEvTomador(){
   const v=document.getElementById('ev-tomador').value;
