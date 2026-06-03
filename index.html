@@ -1111,30 +1111,30 @@ function gerarPDF(){
   };
   const endStr=(me.end&&me.end!=='\u2014'&&me.end!=='')?me.end:'';
 
-  // ── Linhas da tabela ──
+  // ── Linhas da tabela — sem URL ──
   const linhas=desp.map((d,i)=>`
     <tr>
       <td style="text-align:center;padding:5px 4px;border-right:1px solid #ccc;border-bottom:1px solid #eee;vertical-align:top">${i+1}</td>
       <td style="padding:5px 10px;border-right:1px solid #ccc;border-bottom:1px solid #eee;vertical-align:top">
         <strong style="font-size:11px">${d.desc.split('\n')[0]}</strong><br>
         <em style="font-size:10px;color:#333">${d.desc.split('\n')[1]||''}</em>
-        ${d.nfLink?'<br><span style="font-size:8.5px;color:#666;word-break:break-all">NF-e: '+d.nfLink+'</span>':''}
       </td>
       <td style="text-align:center;padding:5px 4px;border-right:1px solid #ccc;border-bottom:1px solid #eee;vertical-align:top">1</td>
       <td style="text-align:right;padding:5px 10px;border-bottom:1px solid #eee;vertical-align:top;white-space:nowrap">${parseFloat(d.valor).toFixed(2).replace('.',',')}</td>
     </tr>`).join('');
 
-  // Linhas vazias para espaço visual (mínimo 8 linhas)
+  // Linhas vazias — altura proporcional: menos itens = linhas mais altas
   const emptyCount=Math.max(0,8-desp.length);
+  const emptyH=desp.length>6?8:desp.length>4?12:16;
   const emptyRows=Array(emptyCount).fill(`
     <tr>
-      <td style="padding:16px 4px;border-right:1px solid #ccc;border-bottom:1px solid #eee">&nbsp;</td>
-      <td style="padding:16px 10px;border-right:1px solid #ccc;border-bottom:1px solid #eee">&nbsp;</td>
-      <td style="padding:16px 4px;border-right:1px solid #ccc;border-bottom:1px solid #eee">&nbsp;</td>
-      <td style="padding:16px 10px;border-bottom:1px solid #eee">&nbsp;</td>
+      <td style="padding:${emptyH}px 4px;border-right:1px solid #ccc;border-bottom:1px solid #eee">&nbsp;</td>
+      <td style="padding:${emptyH}px 10px;border-right:1px solid #ccc;border-bottom:1px solid #eee">&nbsp;</td>
+      <td style="padding:${emptyH}px 4px;border-right:1px solid #ccc;border-bottom:1px solid #eee">&nbsp;</td>
+      <td style="padding:${emptyH}px 10px;border-bottom:1px solid #eee">&nbsp;</td>
     </tr>`).join('');
 
-  // ── Comprovantes ──
+  // ── Comprovantes — inline no mesmo documento ──
   let comprovantesHTML='';
   desp.forEach((d,di)=>{
     if(d.attachs&&d.attachs.length){
@@ -1143,29 +1143,37 @@ function gerarPDF(){
         const label=`Comprovante ${di+1}.${ai+1} \u2014 ${d.desc.split('\n')[0]} (${fd(d.data)}) \u2014 ${a.name}`;
         if(a.type&&a.type.startsWith('image/')){
           comprovantesHTML+=`
-          <div style="page-break-before:always;padding:20px;text-align:center">
-            <p style="font-size:10px;color:#555;margin-bottom:12px;text-align:left;border-bottom:1px solid #ccc;padding-bottom:6px">${label}</p>
-            <img src="${a.data}" style="max-width:100%;max-height:85vh;object-fit:contain;display:block;margin:0 auto" />
+          <div style="page-break-before:always;padding:16px;text-align:center;font-family:Arial,sans-serif">
+            <p style="font-size:10px;color:#555;margin-bottom:10px;text-align:left;border-bottom:1px solid #ccc;padding-bottom:6px">${label}</p>
+            <img src="${a.data}" style="max-width:100%;max-height:240mm;object-fit:contain;display:block;margin:0 auto" />
           </div>`;
         } else if(a.type&&a.type.includes('pdf')){
           comprovantesHTML+=`
-          <div style="page-break-before:always;padding:20px">
-            <p style="font-size:10px;color:#555;margin-bottom:12px;border-bottom:1px solid #ccc;padding-bottom:6px">${label}</p>
-            <embed src="${a.data}" type="application/pdf" width="100%" style="height:85vh" />
+          <div style="page-break-before:always;padding:16px;font-family:Arial,sans-serif">
+            <p style="font-size:10px;color:#555;margin-bottom:10px;border-bottom:1px solid #ccc;padding-bottom:6px">${label}</p>
+            <p style="font-size:12px;color:#333;margin-top:12px">📄 Arquivo PDF: <strong>${a.name}</strong><br>
+            <small style="color:#777">Anexe o arquivo PDF separadamente junto com esta nota.</small></p>
           </div>`;
         }
       });
     }
   });
 
+  // ── NF-e listadas no rodapé se houver ──
+  const nfLinks=desp.filter(d=>d.nfLink).map((d,i)=>`
+    <div style="margin-bottom:4px;font-size:9px">
+      <strong>Item ${desp.indexOf(d)+1}:</strong>
+      <a href="${d.nfLink}" style="color:#333;word-break:break-all">${d.nfLink}</a>
+    </div>`).join('');
+
   const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
 <title>Nota de D\u00e9bito N\u00ba ${num}</title>
 <style>
-  @page{size:A4;margin:12mm 15mm}
+  @page{size:A4;margin:10mm 12mm}
   @media print{.no-print{display:none!important}}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#000}
-  .wrap{max-width:720px;margin:0 auto}
+  .wrap{width:100%}
   .page-label{text-align:right;font-size:9px;color:#555;margin-bottom:3px}
   .lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#333}
   table.main{width:100%;border-collapse:collapse}
@@ -1178,17 +1186,17 @@ function gerarPDF(){
 <!-- EMITENTE + NOTA DÉBITO -->
 <table class="main" style="border:2px solid #000">
   <tr>
-    <td style="width:55%;padding:10px 12px;border-right:2px solid #000">
-      <div style="font-weight:700;font-size:13px;margin-bottom:10px">EMITENTE</div>
-      <div style="margin-bottom:5px"><span class="lbl">Nome/Raz\u00e3o Social: </span>${me.nome}</div>
-      <div style="margin-bottom:5px"><span class="lbl">CPF/CNPJ: </span>${me.cnpj}</div>
-      <div style="margin-bottom:5px"><span class="lbl">E-mail: </span>${me.email}</div>
+    <td style="width:55%;padding:8px 10px;border-right:2px solid #000">
+      <div style="font-weight:700;font-size:12px;margin-bottom:7px">EMITENTE</div>
+      <div style="margin-bottom:4px"><span class="lbl">Nome/Raz\u00e3o Social: </span>${me.nome}</div>
+      <div style="margin-bottom:4px"><span class="lbl">CPF/CNPJ: </span>${me.cnpj}</div>
+      <div style="margin-bottom:4px"><span class="lbl">E-mail: </span>${me.email}</div>
       ${endStr?`<div><span class="lbl">Endere\u00e7o: </span>${endStr}</div>`:''}
     </td>
-    <td style="width:45%;padding:10px 16px;vertical-align:middle;text-align:center">
-      <div style="font-size:22px;font-weight:700;letter-spacing:.02em">NOTA D\u00c9BITO</div>
-      <div style="font-size:13px;margin:6px 0 14px">N\u00ba ${num}</div>
-      <div style="text-align:left;font-size:11px;line-height:1.9">
+    <td style="width:45%;padding:8px 14px;vertical-align:middle;text-align:center">
+      <div style="font-size:20px;font-weight:700;letter-spacing:.02em">NOTA D\u00c9BITO</div>
+      <div style="font-size:12px;margin:5px 0 12px">N\u00ba ${num}</div>
+      <div style="text-align:left;font-size:11px;line-height:1.8">
         <span style="font-weight:700">Emiss\u00e3o:</span>&nbsp;&nbsp;&nbsp;&nbsp;${fd(emissao)}<br>
         <span style="font-weight:700">Refer\u00eancia:</span>&nbsp;&nbsp;${ref}<br>
         <span style="font-weight:700">Vencimento:</span>&nbsp;${fd(venc)}
@@ -1200,10 +1208,10 @@ function gerarPDF(){
 <!-- TOMADOR DO SERVIÇO -->
 <table class="main" style="border:2px solid #000;border-top:none">
   <tr>
-    <td style="padding:10px 12px">
-      <div style="font-weight:700;font-size:13px;margin-bottom:10px">TOMADOR DO SERVI\u00c7O</div>
-      <div style="margin-bottom:5px"><span class="lbl">Empresa: </span>${tom.nome||''}</div>
-      <div style="margin-bottom:${tom.end?'5':'0'}px"><span class="lbl">CNPJ: </span>${tom.cnpj||''}</div>
+    <td style="padding:8px 10px">
+      <div style="font-weight:700;font-size:12px;margin-bottom:7px">TOMADOR DO SERVI\u00c7O</div>
+      <div style="margin-bottom:4px"><span class="lbl">Empresa: </span>${tom.nome||''}</div>
+      <div style="${tom.end?'margin-bottom:4px':''}"><span class="lbl">CNPJ: </span>${tom.cnpj||''}</div>
       ${tom.end?`<div><span class="lbl">Endere\u00e7o: </span>${tom.end}</div>`:''}
     </td>
   </tr>
@@ -1212,7 +1220,7 @@ function gerarPDF(){
 <!-- EVENTO -->
 <table class="main" style="border:2px solid #000;border-top:none">
   <tr>
-    <td style="padding:6px 12px">
+    <td style="padding:5px 10px">
       <strong>EVENTO:</strong>&nbsp;&nbsp;${ev.nome}${ev.cidade?' \u2014 '+ev.cidade:''}
     </td>
   </tr>
@@ -1221,14 +1229,14 @@ function gerarPDF(){
 <!-- TABELA ITENS -->
 <table class="main" style="border:2px solid #000;border-top:none">
   <thead>
-    <tr style="background:#fff">
-      <th rowspan="2" style="width:6%;padding:6px 4px;text-align:center;border-right:1px solid #ccc;border-bottom:1px solid #ccc;vertical-align:middle;font-size:11px">Item</th>
-      <th rowspan="2" style="padding:6px 10px;text-align:center;border-right:1px solid #ccc;border-bottom:1px solid #ccc;vertical-align:middle;font-size:11px">Descri\u00e7\u00e3o</th>
-      <th colspan="2" style="padding:6px 4px;text-align:center;border-bottom:1px solid #ccc;font-size:11px">Pre\u00e7o (R$)</th>
+    <tr>
+      <th rowspan="2" style="width:6%;padding:5px 4px;text-align:center;border-right:1px solid #ccc;border-bottom:1px solid #ccc;vertical-align:middle;font-size:11px">Item</th>
+      <th rowspan="2" style="padding:5px 10px;text-align:center;border-right:1px solid #ccc;border-bottom:1px solid #ccc;vertical-align:middle;font-size:11px">Descri\u00e7\u00e3o</th>
+      <th colspan="2" style="padding:5px 4px;text-align:center;border-bottom:1px solid #ccc;font-size:11px">Pre\u00e7o (R$)</th>
     </tr>
     <tr>
-      <th style="width:10%;padding:5px 4px;text-align:center;border-right:1px solid #ccc;border-bottom:1px solid #ccc;font-size:11px">Unit.</th>
-      <th style="width:14%;padding:5px 10px;text-align:right;border-bottom:1px solid #ccc;font-size:11px">Valor</th>
+      <th style="width:10%;padding:4px;text-align:center;border-right:1px solid #ccc;border-bottom:1px solid #ccc;font-size:11px">Unit.</th>
+      <th style="width:14%;padding:4px 10px;text-align:right;border-bottom:1px solid #ccc;font-size:11px">Valor</th>
     </tr>
   </thead>
   <tbody>
@@ -1240,7 +1248,7 @@ function gerarPDF(){
 <!-- VALOR TOTAL -->
 <table class="main" style="border:2px solid #000;border-top:none">
   <tr>
-    <td style="padding:8px 12px;text-align:right;font-size:12px">
+    <td style="padding:6px 10px;text-align:right;font-size:12px">
       <strong>Valor total:</strong>&nbsp;&nbsp;&nbsp;R$ ${total.toFixed(2).replace('.',',')}
     </td>
   </tr>
@@ -1249,12 +1257,12 @@ function gerarPDF(){
 <!-- DADOS BANCÁRIOS -->
 <table class="main" style="border:2px solid #000;border-top:none">
   <tr>
-    <td style="padding:10px 12px">
-      <div style="font-weight:700;font-size:11px;text-transform:uppercase;margin-bottom:8px">Dados Banc\u00e1rios para Pagamento:</div>
-      <div style="line-height:2">
-        <strong>Banco:</strong> ${me.banco}<br>
+    <td style="padding:8px 10px">
+      <div style="font-weight:700;font-size:11px;text-transform:uppercase;margin-bottom:6px">Dados Banc\u00e1rios para Pagamento:</div>
+      <div style="line-height:1.8;font-size:11px">
+        <strong>Banco:</strong> ${me.banco}&nbsp;&nbsp;
         <strong>C\u00f3digo:</strong> ${me.cod}<br>
-        <strong>Ag\u00eancia:</strong> ${me.ag}<br>
+        <strong>Ag\u00eancia:</strong> ${me.ag}&nbsp;&nbsp;
         <strong>Conta:</strong> ${me.conta}<br>
         <strong>Favorecido:</strong> ${me.nome}<br>
         <strong>CPF/CNPJ (vinculado \u00e0 conta):</strong> ${me.cnpj}
@@ -1263,17 +1271,27 @@ function gerarPDF(){
   </tr>
 </table>
 
+${nfLinks?`
+<!-- LINKS NF-e -->
+<table class="main" style="border:2px solid #000;border-top:none">
+  <tr>
+    <td style="padding:6px 10px">
+      <div style="font-weight:700;font-size:9px;text-transform:uppercase;margin-bottom:4px;color:#555">Links NF-e</div>
+      ${nfLinks}
+    </td>
+  </tr>
+</table>`:''}
+
 <!-- RODAPÉ -->
 <table class="main" style="border:2px solid #000;border-top:none">
   <tr>
-    <td style="padding:5px 12px;text-align:center;font-size:9px;color:#555;font-style:italic">
+    <td style="padding:4px 10px;text-align:center;font-size:9px;color:#555;font-style:italic">
       A presente nota de d\u00e9bito n\u00e3o est\u00e1 sujeita \u00e0 reten\u00e7\u00e3o de tributos na fonte.
     </td>
   </tr>
 </table>
 
 </div>
-
 ${comprovantesHTML}
 
 <button class="no-print" onclick="window.print()"
@@ -1285,6 +1303,7 @@ ${comprovantesHTML}
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
   window.open(URL.createObjectURL(blob),'_blank');
 }
+
 
 
 
