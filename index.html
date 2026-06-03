@@ -282,22 +282,27 @@ textarea{resize:vertical;min-height:68px}
     </div>
     <div class="slabel">Dados bancários</div>
     <div class="info-card">
-      <div class="pf"><div class="fl">Banco</div><div class="fv">BTG Pactual S.A. (208)</div></div>
-      <div class="pf"><div class="fl">Agência</div><div class="fv">0050</div></div>
-      <div class="pf"><div class="fl">Conta Corrente (PJ)</div><div class="fv">848596-8</div></div>
-      <div class="pf"><div class="fl">Titular</div><div class="fv">Joedres Ferreira Vilas Boas</div></div>
-      <div class="pf"><div class="fl">CNPJ vinculado</div><div class="fv">52.150.205/0001-57</div></div>
+      <div class="pf"><div class="fl">Banco</div><div class="fv" id="cfg-banco">BTG Pactual S.A. (208)</div></div>
+      <div class="pf"><div class="fl">Agência</div><div class="fv" id="cfg-agencia">0050</div></div>
+      <div class="pf"><div class="fl">Conta Corrente (PJ)</div><div class="fv" id="cfg-conta">848596-8</div></div>
+      <div class="pf"><div class="fl">Titular</div><div class="fv" id="cfg-titular">Joedres Ferreira Vilas Boas</div></div>
+      <div class="pf"><div class="fl">CNPJ vinculado</div><div class="fv" id="cfg-cnpj-banco">52.150.205/0001-57</div></div>
+      <button class="btn btn-sm mt8" onclick="abrirEditarBanco()" style="width:auto">✏️ Editar</button>
     </div>
     <div class="slabel">Tomadores cadastrados</div>
-    <div class="info-card" style="font-size:13px;line-height:2.2">
-      <b>PLAT</b> — CNPJ 45.805.035/0001-36<br>
-      <b>INSIDER</b> — CNPJ 34.295.555/0001-20<br>
-      <b>FL / Black Friday</b> — CNPJ 10.332.345/0001-04<br>
-      <b>FHT</b> — CNPJ 53.049.699/0001-40
+    <div class="info-card" style="font-size:13px;line-height:2.2" id="cfg-tomadores-view">
+      <div id="cfg-tomadores-list">
+        <b>PLAT</b> — CNPJ 45.805.035/0001-36<br>
+        <b>INSIDER</b> — CNPJ 34.295.555/0001-20<br>
+        <b>FL / Black Friday</b> — CNPJ 10.332.345/0001-04<br>
+        <b>FHT</b> — CNPJ 53.049.699/0001-40
+      </div>
+      <button class="btn btn-sm mt8" onclick="abrirEditarTomadores()" style="width:auto">✏️ Editar</button>
     </div>
     <div class="slabel">Envio</div>
     <div class="info-card">
-      <div class="pf"><div class="fl">Financeiro</div><div class="fv">financeiro@platmentorias.com.br</div></div>
+      <div class="pf"><div class="fl">Financeiro</div><div class="fv" id="cfg-email-envio">financeiro@platmentorias.com.br</div></div>
+      <button class="btn btn-sm mt8" onclick="abrirEditarEnvio()" style="width:auto">✏️ Editar</button>
     </div>
     <div class="alert a-warn mt16">
       ⚠️ Prints de tela do banco <b>não são aceitos</b>.<br><br>
@@ -377,6 +382,47 @@ textarea{resize:vertical;min-height:68px}
     <label>Endereço</label>
     <input type="text" id="ep-end" placeholder="Ex: Rua das Flores, 123 – São Paulo SP" />
     <button class="btn btn-primary mt16" onclick="salvarPrestador()">💾 Salvar</button>
+  </div>
+</div>
+
+<!-- MODAL DADOS BANCÁRIOS -->
+<div class="modal-overlay" id="modal-banco">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-banco')">✕</button>
+    <h2>🏦 Dados bancários</h2>
+    <label>Banco</label>
+    <input type="text" id="eb-banco" placeholder="Ex: BTG Pactual S.A. (208)" />
+    <label>Agência</label>
+    <input type="text" id="eb-agencia" placeholder="Ex: 0050" />
+    <label>Conta Corrente (PJ)</label>
+    <input type="text" id="eb-conta" placeholder="Ex: 848596-8" />
+    <label>Titular</label>
+    <input type="text" id="eb-titular" />
+    <label>CNPJ vinculado</label>
+    <input type="text" id="eb-cnpj" />
+    <button class="btn btn-primary mt16" onclick="salvarBanco()">💾 Salvar</button>
+  </div>
+</div>
+
+<!-- MODAL TOMADORES -->
+<div class="modal-overlay" id="modal-tomadores">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-tomadores')">✕</button>
+    <h2>🏢 Tomadores cadastrados</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Edite os dados de cada tomador (empresa que paga o reembolso).</p>
+    <div id="tomadores-edit-list"></div>
+    <button class="btn btn-primary mt8" onclick="salvarTomadores()">💾 Salvar</button>
+  </div>
+</div>
+
+<!-- MODAL ENVIO -->
+<div class="modal-overlay" id="modal-envio">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-envio')">✕</button>
+    <h2>📧 E-mail de envio</h2>
+    <label>E-mail do financeiro</label>
+    <input type="text" id="ee-email" placeholder="financeiro@empresa.com.br" />
+    <button class="btn btn-primary mt16" onclick="salvarEnvio()">💾 Salvar</button>
   </div>
 </div>
 
@@ -1149,7 +1195,11 @@ function gerarPDF(){
     cnpj: document.getElementById('cfg-cnpj')?.textContent.trim()||ME.cnpj,
     email: document.getElementById('cfg-email')?.textContent.trim()||ME.email,
     end: document.getElementById('cfg-end')?.textContent.trim()||'',
-    banco:ME.banco,cod:ME.cod,ag:ME.ag,conta:ME.conta
+    banco:p.banco||ME.banco+' ('+ME.cod+')',
+    ag:p.agencia||ME.ag,
+    conta:p.conta||ME.conta,
+    titular:p.titular||ME.nome,
+    cnpjConta:p.cnpjBanco||ME.cnpj
   };
   const endStr=(me.end&&me.end!=='\u2014'&&me.end!=='')?me.end:'';
 
@@ -1349,6 +1399,85 @@ function attachFile(e){
 
 // Touch/mouse events for crop
 
+// ─── EDITAR DADOS BANCÁRIOS ───────────────────────────────────
+function abrirEditarBanco(){
+  const p=S.prestador||{};
+  document.getElementById('eb-banco').value=p.banco||document.getElementById('cfg-banco').textContent||ME.banco+' ('+ME.cod+')';
+  document.getElementById('eb-agencia').value=p.agencia||document.getElementById('cfg-agencia').textContent||ME.ag;
+  document.getElementById('eb-conta').value=p.conta||document.getElementById('cfg-conta').textContent||ME.conta;
+  document.getElementById('eb-titular').value=p.titular||document.getElementById('cfg-titular').textContent||ME.nome;
+  document.getElementById('eb-cnpj').value=p.cnpjBanco||document.getElementById('cfg-cnpj-banco').textContent||ME.cnpj;
+  openModal('modal-banco');
+}
+
+function salvarBanco(){
+  document.getElementById('cfg-banco').textContent=document.getElementById('eb-banco').value.trim();
+  document.getElementById('cfg-agencia').textContent=document.getElementById('eb-agencia').value.trim();
+  document.getElementById('cfg-conta').textContent=document.getElementById('eb-conta').value.trim();
+  document.getElementById('cfg-titular').textContent=document.getElementById('eb-titular').value.trim();
+  document.getElementById('cfg-cnpj-banco').textContent=document.getElementById('eb-cnpj').value.trim();
+  if(!S.prestador)S.prestador={};
+  S.prestador.banco=document.getElementById('eb-banco').value.trim();
+  S.prestador.agencia=document.getElementById('eb-agencia').value.trim();
+  S.prestador.conta=document.getElementById('eb-conta').value.trim();
+  S.prestador.titular=document.getElementById('eb-titular').value.trim();
+  S.prestador.cnpjBanco=document.getElementById('eb-cnpj').value.trim();
+  salvar();
+  closeModal('modal-banco');
+}
+
+// ─── EDITAR TOMADORES ─────────────────────────────────────────
+let tomadoresEdit=[];
+
+function abrirEditarTomadores(){
+  // Inicializa com dados atuais do TOMADORES
+  tomadoresEdit=Object.entries(S.tomadores||TOMADORES).map(([key,t])=>({key,...t}));
+  renderTomadoresEdit();
+  openModal('modal-tomadores');
+}
+
+function renderTomadoresEdit(){
+  document.getElementById('tomadores-edit-list').innerHTML=tomadoresEdit.map((t,i)=>`
+    <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:8px">${t.key}</div>
+      <label style="margin-top:0">Nome</label>
+      <input type="text" value="${t.nome}" oninput="tomadoresEdit[${i}].nome=this.value" style="margin-bottom:6px"/>
+      <label>CNPJ</label>
+      <input type="text" value="${t.cnpj}" oninput="tomadoresEdit[${i}].cnpj=this.value" style="margin-bottom:6px"/>
+      <label>Endereço</label>
+      <input type="text" value="${t.end||''}" oninput="tomadoresEdit[${i}].end=this.value"/>
+    </div>`).join('');
+}
+
+function salvarTomadores(){
+  // Atualiza TOMADORES em memória e salva
+  tomadoresEdit.forEach(t=>{
+    TOMADORES[t.key]={nome:t.nome,cnpj:t.cnpj,end:t.end||''};
+  });
+  S.tomadores=JSON.parse(JSON.stringify(TOMADORES));
+  // Atualiza view
+  document.getElementById('cfg-tomadores-list').innerHTML=
+    tomadoresEdit.map(t=>`<b>${t.key}</b> — CNPJ ${t.cnpj}<br>`).join('');
+  salvar();
+  closeModal('modal-tomadores');
+}
+
+// ─── EDITAR ENVIO ─────────────────────────────────────────────
+function abrirEditarEnvio(){
+  const p=S.prestador||{};
+  document.getElementById('ee-email').value=p.emailEnvio||document.getElementById('cfg-email-envio').textContent||'financeiro@platmentorias.com.br';
+  openModal('modal-envio');
+}
+
+function salvarEnvio(){
+  const email=document.getElementById('ee-email').value.trim();
+  document.getElementById('cfg-email-envio').textContent=email;
+  if(!S.prestador)S.prestador={};
+  S.prestador.emailEnvio=email;
+  salvar();
+  closeModal('modal-envio');
+}
+
 // ─── EDITAR PRESTADOR ────────────────────────────────────────
 function abrirEditarPrestador(){
   document.getElementById('ep-nome').value=document.getElementById('cfg-nome').textContent||ME.nome;
@@ -1388,6 +1517,20 @@ function carregarPrestador(){
   if(p.email) document.getElementById('cfg-email').textContent=p.email;
   if(p.tel) document.getElementById('cfg-tel').textContent=p.tel;
   if(p.end) document.getElementById('cfg-end').textContent=p.end;
+  // Dados bancários
+  if(p.banco) document.getElementById('cfg-banco').textContent=p.banco;
+  if(p.agencia) document.getElementById('cfg-agencia').textContent=p.agencia;
+  if(p.conta) document.getElementById('cfg-conta').textContent=p.conta;
+  if(p.titular) document.getElementById('cfg-titular').textContent=p.titular;
+  if(p.cnpjBanco) document.getElementById('cfg-cnpj-banco').textContent=p.cnpjBanco;
+  // Envio
+  if(p.emailEnvio) document.getElementById('cfg-email-envio').textContent=p.emailEnvio;
+  // Tomadores
+  if(S.tomadores){
+    Object.assign(TOMADORES,S.tomadores);
+    document.getElementById('cfg-tomadores-list').innerHTML=
+      Object.entries(TOMADORES).map(([k,t])=>`<b>${k}</b> — CNPJ ${t.cnpj}<br>`).join('');
+  }
 }
 
 // ─── EDITAR DESPESA ───────────────────────────────────────────
