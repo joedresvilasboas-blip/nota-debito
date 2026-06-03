@@ -347,7 +347,7 @@ textarea{resize:vertical;min-height:68px}
     <button class="modal-close" onclick="cancelarCrop()">✕</button>
     <h2>✂️ Ajustar imagem</h2>
     <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Arraste para mover · Pinça para zoom</p>
-    <div id="crop-wrap" style="position:relative;width:100%;height:360px;overflow:hidden;background:#111;border-radius:var(--radius-sm);touch-action:none">
+    <div id="crop-wrap" style="position:relative;width:100%;overflow:hidden;background:#111;border-radius:var(--radius-sm);touch-action:none">
       <img id="crop-img" style="position:absolute;transform-origin:center;user-select:none;-webkit-user-select:none" draggable="false" />
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
@@ -708,32 +708,43 @@ async function iniciarQR(){
   document.getElementById('qr-video-wrap').classList.add('open');
   try{
     if(!zxingReader){
-      zxingReader=new ZXing.BrowserMultiFormatReader();
+      const hints=new Map();
+      // Formatos aceitos para NF-e brasileira (QR code padrão)
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
+        ZXing.BarcodeFormat.QR_CODE
+      ]);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+      zxingReader=new ZXing.BrowserMultiFormatReader(hints);
     }
 
-    // Pega o stream manualmente com todas as constraints de qualidade
-    const constraints={
+    // Stream com máxima qualidade e foco contínuo
+    qrStream=await navigator.mediaDevices.getUserMedia({
       video:{
         facingMode:{ideal:'environment'},
-        width:{ideal:1920},
-        height:{ideal:1080},
-        focusMode:{ideal:'continuous'},
-        zoom:{ideal:1},
-        advanced:[{focusMode:'continuous'},{zoom:1}]
+        width:{min:1280, ideal:1920, max:3840},
+        height:{min:720, ideal:1080, max:2160},
+        frameRate:{ideal:30},
+        advanced:[
+          {focusMode:'continuous'},
+          {exposureMode:'continuous'},
+          {whiteBalanceMode:'continuous'}
+        ]
       }
-    };
+    });
 
-    qrStream=await navigator.mediaDevices.getUserMedia(constraints);
-
-    // Aplica foco contínuo na track se disponível
+    // Aplica constraints na track diretamente
     const track=qrStream.getVideoTracks()[0];
-    if(track&&track.getCapabilities){
-      const caps=track.getCapabilities();
-      const settings={};
-      if(caps.focusMode&&caps.focusMode.includes('continuous'))
-        settings.focusMode='continuous';
-      if(caps.zoom) settings.zoom=caps.zoom.min||1;
-      if(Object.keys(settings).length) await track.applyConstraints({advanced:[settings]});
+    if(track){
+      try{
+        const caps=track.getCapabilities()||{};
+        const apply={};
+        if(caps.focusMode?.includes('continuous')) apply.focusMode='continuous';
+        if(caps.exposureMode?.includes('continuous')) apply.exposureMode='continuous';
+        if(caps.whiteBalanceMode?.includes('continuous')) apply.whiteBalanceMode='continuous';
+        // Zoom mínimo para ver mais área
+        if(caps.zoom) apply.zoom=caps.zoom.min;
+        if(Object.keys(apply).length) await track.applyConstraints({advanced:[apply]});
+      }catch(e){console.warn('applyConstraints:',e)}
     }
 
     const video=document.getElementById('qr-video');
