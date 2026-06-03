@@ -357,6 +357,69 @@ textarea{resize:vertical;min-height:68px}
   </div>
 </div>
 
+<!-- MODAL EDITAR DESPESA -->
+<div class="modal-overlay" id="modal-editar">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-editar')">✕</button>
+    <h2>✏️ Editar despesa</h2>
+    <input type="hidden" id="edit-id" />
+
+    <div class="slabel" style="margin-top:0">Tipo</div>
+    <div class="tipo-grid" style="grid-template-columns:1fr 1fr 1fr">
+      <button class="tipo-btn" id="edit-btn-transp" onclick="setEditTipo('transporte')">🚗 Transporte</button>
+      <button class="tipo-btn" id="edit-btn-alim" onclick="setEditTipo('alimentacao')">🍽️ Alimentação</button>
+      <button class="tipo-btn" id="edit-btn-outro" onclick="setEditTipo('outro')">➕ Outro</button>
+    </div>
+    <div id="edit-outro-wrap" style="display:none;margin-top:8px">
+      <label>Qual tipo?</label>
+      <input type="text" id="edit-outro-tipo" placeholder="Ex: Farmácia..." oninput="atualizarEditDesc()" />
+    </div>
+
+    <label>Dia do evento</label>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="tipo-btn" onclick="ajustarEditDia(-1)" style="width:48px;font-size:20px;flex-shrink:0">−</button>
+      <input type="number" id="edit-dia" value="1" min="1" max="99" inputmode="numeric"
+        style="text-align:center;font-size:20px;font-weight:600;flex:1" oninput="atualizarEditDesc()" />
+      <button class="tipo-btn" onclick="ajustarEditDia(1)" style="width:48px;font-size:20px;flex-shrink:0">+</button>
+    </div>
+
+    <div class="card" style="margin-top:10px;margin-bottom:4px">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Descrição gerada</div>
+      <div id="edit-desc-preview" style="font-size:14px;color:var(--text);line-height:1.5;font-weight:500"></div>
+    </div>
+
+    <label>Data</label>
+    <input type="date" id="edit-data" />
+
+    <label>Valor (R$)</label>
+    <input type="text" id="edit-valor" inputmode="numeric" oninput="mascaraValor(this)"
+      style="font-size:18px;font-weight:500" />
+
+    <div class="slabel">Link NF-e</div>
+    <div id="edit-nf-show" style="display:none" class="thumb">
+      <span class="ti">🔗</span>
+      <span class="tn" id="edit-nf-text"></span>
+      <button class="tr" onclick="clearEditNF()">✕</button>
+    </div>
+    <input type="text" id="edit-nf-manual" placeholder="Link da NF-e" oninput="setEditNFManual(this.value)" />
+
+    <div class="slabel">Comprovantes</div>
+    <div id="edit-attach-list"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <div class="drop" onclick="document.getElementById('edit-file-camera').click()" style="margin-top:0">
+        <div class="di">📷</div><p>Tirar foto</p>
+      </div>
+      <div class="drop" onclick="document.getElementById('edit-file-input').click()" style="margin-top:0">
+        <div class="di">📁</div><p>Galeria / PDF</p>
+      </div>
+    </div>
+    <input type="file" id="edit-file-camera" accept="image/*" capture="environment" style="display:none" onchange="editAttachFile(event)" />
+    <input type="file" id="edit-file-input" accept="image/*,application/pdf" style="display:none" onchange="editAttachFile(event)" />
+
+    <button class="btn btn-primary mt16" onclick="salvarEdicao()">💾 Salvar alterações</button>
+  </div>
+</div>
+
 <!-- MODAL CONFIRMAÇÃO QR -->
 <div class="modal-overlay" id="qr-confirm-modal">
   <div class="modal">
@@ -937,6 +1000,7 @@ function renderDespesas(){
       </div>
       <div class="exp-actions">
         ${d.nfLink?`<button class="btn btn-sm" onclick="window.open('${d.nfLink}','_blank')">🔗 Ver NF</button>`:''}
+        <button class="btn btn-sm" onclick="editarDespesa(${d.id})">✏️ Editar</button>
         <button class="btn btn-sm btn-danger" onclick="delDespesa(${d.id})">🗑️</button>
       </div>
     </div>`).join('');
@@ -1137,6 +1201,168 @@ function attachFile(e){
 
 
 // Touch/mouse events for crop
+
+// ─── EDITAR DESPESA ───────────────────────────────────────────
+let editTipo='transporte';
+let editAttachs=[];
+let editNFLink='';
+
+function editarDespesa(id){
+  const d=S.despesas.find(x=>x.id===id);
+  if(!d)return;
+  document.getElementById('edit-id').value=id;
+
+  // Tipo
+  editTipo=d.tipo||'transporte';
+  setEditTipo(editTipo, true);
+
+  // Se outro, preenche o tipo
+  if(editTipo==='outro'){
+    const label=d.desc.split('\n')[0].replace('Reembolso ','');
+    document.getElementById('edit-outro-tipo').value=label;
+  }
+
+  // Dia
+  const dia=d.diaAtivo||1;
+  document.getElementById('edit-dia').value=dia;
+
+  // Data
+  document.getElementById('edit-data').value=d.data||'';
+
+  // Valor
+  const n=parseFloat(d.valor)||0;
+  document.getElementById('edit-valor').value=
+    n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+
+  // NF link
+  editNFLink=d.nfLink||'';
+  if(editNFLink){
+    document.getElementById('edit-nf-text').textContent=editNFLink;
+    document.getElementById('edit-nf-show').style.display='flex';
+    document.getElementById('edit-nf-manual').value='';
+  } else {
+    document.getElementById('edit-nf-show').style.display='none';
+    document.getElementById('edit-nf-manual').value='';
+  }
+
+  // Comprovantes
+  editAttachs=(d.attachs||[]).map(a=>({...a}));
+  renderEditAttachs();
+
+  atualizarEditDesc();
+  openModal('modal-editar');
+}
+
+function setEditTipo(t, skipDesc){
+  editTipo=t;
+  document.getElementById('edit-btn-transp').className='tipo-btn'+(t==='transporte'?' sel':'');
+  document.getElementById('edit-btn-alim').className='tipo-btn'+(t==='alimentacao'?' sel':'');
+  document.getElementById('edit-btn-outro').className='tipo-btn'+(t==='outro'?' sel':'');
+  document.getElementById('edit-outro-wrap').style.display=t==='outro'?'block':'none';
+  if(!skipDesc) atualizarEditDesc();
+}
+
+function ajustarEditDia(delta){
+  const el=document.getElementById('edit-dia');
+  el.value=Math.max(1,parseInt(el.value||1)+delta);
+  atualizarEditDesc();
+}
+
+function getEditTipoLabel(){
+  if(editTipo==='transporte')return'Transporte';
+  if(editTipo==='alimentacao')return'Alimentação';
+  return(document.getElementById('edit-outro-tipo').value||'').trim()||'Outro';
+}
+
+function atualizarEditDesc(){
+  const ev=getNomeEvento();
+  const label=getEditTipoLabel();
+  const local=ev.local?ev.nome+' | '+ev.local:ev.nome;
+  const dia=document.getElementById('edit-dia').value||1;
+  const linha1='Reembolso '+label;
+  const linha2='Dia '+dia+' — '+local;
+  const el=document.getElementById('edit-desc-preview');
+  if(el) el.innerHTML='<span>'+linha1+'</span><br><span style="color:var(--text2);font-size:13px">'+linha2+'</span>';
+}
+
+function setEditNFManual(v){
+  if(v.startsWith('http')){
+    editNFLink=v.trim();
+    document.getElementById('edit-nf-text').textContent=editNFLink;
+    document.getElementById('edit-nf-show').style.display='flex';
+    document.getElementById('edit-nf-manual').value='';
+  }
+}
+function clearEditNF(){
+  editNFLink='';
+  document.getElementById('edit-nf-show').style.display='none';
+  document.getElementById('edit-nf-manual').value='';
+}
+
+function editAttachFile(e){
+  const f=e.target.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    editAttachs.push({name:f.name,type:f.type,data:ev.target.result});
+    renderEditAttachs();
+  };
+  reader.readAsDataURL(f);
+  e.target.value='';
+}
+
+function renderEditAttachs(){
+  const el=document.getElementById('edit-attach-list');
+  if(!editAttachs.length){el.innerHTML='';return}
+  el.innerHTML=
+    `<div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">`+
+    `📎 ${editAttachs.length} comprovante(s)</div>`+
+    editAttachs.map((a,i)=>`
+      <div class="thumb">
+        <span class="ti">${a.type.includes('pdf')?'📄':'🖼️'}</span>
+        <span class="tn">${a.name}</span>
+        <button class="tr" onclick="rmEditAttach(${i})">✕</button>
+      </div>`).join('');
+}
+
+function rmEditAttach(i){
+  editAttachs.splice(i,1);
+  renderEditAttachs();
+}
+
+function salvarEdicao(){
+  const id=parseInt(document.getElementById('edit-id').value);
+  const idx=S.despesas.findIndex(x=>x.id===id);
+  if(idx===-1)return;
+
+  if(editTipo==='outro'&&!document.getElementById('edit-outro-tipo').value.trim()){
+    alert('Descreva o tipo de despesa.');return;
+  }
+  const data=document.getElementById('edit-data').value;
+  if(!data){alert('Informe a data.');return}
+
+  const valorTxt=document.getElementById('edit-valor').value;
+  const valor=parseFloat(valorTxt.replace(/[R$\s.]/g,'').replace(',','.'));
+  if(!valor||valor<=0){alert('Informe um valor válido.');return}
+
+  const dia=parseInt(document.getElementById('edit-dia').value)||1;
+  const ev=getNomeEvento();
+  const label=getEditTipoLabel();
+  const local=ev.local?ev.nome+' | '+ev.local:ev.nome;
+  const desc='Reembolso '+label+'\nDia '+dia+' — '+local;
+
+  S.despesas[idx]={
+    ...S.despesas[idx],
+    desc, data, valor,
+    tipo:editTipo,
+    diaAtivo:dia,
+    nfLink:editNFLink,
+    attachs:editAttachs.map(a=>({...a}))
+  };
+
+  salvar();
+  closeModal('modal-editar');
+  renderDespesas();
+}
 
 // ─── INIT ─────────────────────────────────────────────────────
 carregar();
