@@ -347,7 +347,7 @@ textarea{resize:vertical;min-height:68px}
     <button class="modal-close" onclick="cancelarCrop()">✕</button>
     <h2>✂️ Ajustar imagem</h2>
     <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Arraste para mover · Pinça para zoom</p>
-    <div id="crop-wrap" style="position:relative;width:100%;height:300px;overflow:hidden;background:#000;border-radius:var(--radius-sm);touch-action:none">
+    <div id="crop-wrap" style="position:relative;width:100%;height:360px;overflow:hidden;background:#111;border-radius:var(--radius-sm);touch-action:none">
       <img id="crop-img" style="position:absolute;transform-origin:center;user-select:none;-webkit-user-select:none" draggable="false" />
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
@@ -1101,18 +1101,32 @@ function fitCropImage(){
   const img=document.getElementById('crop-img');
   const ww=wrap.clientWidth, wh=wrap.clientHeight;
   const iw=img.naturalWidth, ih=img.naturalHeight;
-  cropState.scale=Math.min(ww/iw, wh/ih)*0.92;
-  cropState.x=0; cropState.y=0;
+  if(!iw||!ih)return;
+  // COVER: preenche toda a área (como object-fit:cover)
+  const scaleW=ww/iw;
+  const scaleH=wh/ih;
+  cropState.scale=Math.max(scaleW,scaleH);
+  cropState.x=0;
+  cropState.y=0;
+  cropState.rot=0;
   applyCropTransform();
 }
 
 function applyCropTransform(){
   const img=document.getElementById('crop-img');
   const wrap=document.getElementById('crop-wrap');
-  const cx=wrap.clientWidth/2, cy=wrap.clientHeight/2;
-  img.style.transform=`translate(calc(-50% + ${cropState.x}px), calc(-50% + ${cropState.y}px)) rotate(${cropState.rot}deg) scale(${cropState.scale})`;
-  img.style.left=cx+'px';
-  img.style.top=cy+'px';
+  const cx=wrap.clientWidth/2;
+  const cy=wrap.clientHeight/2;
+  const tx=cx+cropState.x;
+  const ty=cy+cropState.y;
+  img.style.left='0';
+  img.style.top='0';
+  img.style.transformOrigin='0 0';
+  img.style.transform=
+    `translate(${tx}px, ${ty}px) `+
+    `rotate(${cropState.rot}deg) `+
+    `scale(${cropState.scale}) `+
+    `translate(-50%, -50%)`;
 }
 
 function rotacionarCrop(deg){
@@ -1128,18 +1142,22 @@ function confirmarCrop(){
   const img=document.getElementById('crop-img');
   const wrap=document.getElementById('crop-wrap');
   const ww=wrap.clientWidth, wh=wrap.clientHeight;
-  // Render to canvas at wrap size
+  const dpr=2;
   const canvas=document.createElement('canvas');
-  canvas.width=ww*2; canvas.height=wh*2; // 2x for retina
+  canvas.width=ww*dpr;
+  canvas.height=wh*dpr;
   const ctx=canvas.getContext('2d');
-  ctx.scale(2,2);
+  ctx.scale(dpr,dpr);
   ctx.fillStyle='#fff';
   ctx.fillRect(0,0,ww,wh);
   ctx.save();
-  ctx.translate(ww/2+cropState.x, wh/2+cropState.y);
+  // Replica exatamente o applyCropTransform
+  const tx=ww/2+cropState.x;
+  const ty=wh/2+cropState.y;
+  ctx.translate(tx,ty);
   ctx.rotate(cropState.rot*Math.PI/180);
-  ctx.scale(cropState.scale, cropState.scale);
-  ctx.drawImage(img, -img.naturalWidth/2, -img.naturalHeight/2);
+  ctx.scale(cropState.scale,cropState.scale);
+  ctx.drawImage(img,-img.naturalWidth/2,-img.naturalHeight/2);
   ctx.restore();
   const dataUrl=canvas.toDataURL('image/jpeg',0.92);
   attachs.push({name:cropState.origName,type:'image/jpeg',data:dataUrl});
