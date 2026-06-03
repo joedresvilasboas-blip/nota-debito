@@ -208,17 +208,10 @@ textarea{resize:vertical;min-height:68px}
       oninput="mascaraValor(this)" style="font-size:18px;font-weight:500" />
 
     <div class="slabel">Nota fiscal / comprovante</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px" id="qr-area">
-      <div class="drop" onclick="iniciarQR()" style="margin-top:0">
-        <div class="di">📷</div>
-        <p>Câmera<br><small>Escanear QR</small></p>
-      </div>
-      <div class="drop" onclick="document.getElementById('qr-galeria-input').click()" style="margin-top:0">
-        <div class="di">🖼️</div>
-        <p>Galeria<br><small>Ler QR da foto</small></p>
-      </div>
+    <div class="drop" onclick="iniciarQR()" id="qr-area" style="margin-top:8px">
+      <div class="di">📷</div>
+      <p>Escanear QR code da NF-e<br><small>Toque para abrir a câmera</small></p>
     </div>
-    <input type="file" id="qr-galeria-input" accept="image/*" style="display:none" onchange="lerQRdaGaleria(event)" />
     <div id="nf-show" style="display:none" class="thumb">
       <span class="ti">🔗</span>
       <span class="tn" id="nf-text"></span>
@@ -229,7 +222,7 @@ textarea{resize:vertical;min-height:68px}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
       <div class="drop" onclick="document.getElementById('file-camera').click()" style="margin-top:0">
         <div class="di">📷</div>
-        <p>Tirar foto</p>
+        <p>Câmera</p>
       </div>
       <div class="drop" onclick="document.getElementById('file-input').click()" style="margin-top:0">
         <div class="di">📁</div>
@@ -277,7 +270,7 @@ textarea{resize:vertical;min-height:68px}
       <div class="pf"><div class="fl">CNPJ</div><div class="fv" id="cfg-cnpj">52.150.205/0001-57</div></div>
       <div class="pf"><div class="fl">E-mail</div><div class="fv" id="cfg-email">joedres_vilasboas@hotmail.com</div></div>
       <div class="pf"><div class="fl">Telefone</div><div class="fv" id="cfg-tel">11 97547-8716</div></div>
-      <div class="pf"><div class="fl">Endereço</div><div class="fv" id="cfg-end">Av. Eugênio Coltro, 1925 - BL 05 Apto 301 - Salto-SP</div></div>
+      <div class="pf"><div class="fl">Endereço</div><div class="fv" id="cfg-end">Av. Eugênio Coltro, 1925 - Bl. 05, Ap. 301 - Salto Ville - Salto/SP, 13323-420</div></div>
       <button class="btn btn-sm mt8" onclick="abrirEditarPrestador()" style="width:auto">✏️ Editar dados</button>
     </div>
     <div class="slabel">Dados bancários</div>
@@ -357,15 +350,6 @@ textarea{resize:vertical;min-height:68px}
   </div>
   <p style="position:absolute;bottom:100px;color:#fff;font-size:14px;text-align:center;padding:0 32px;opacity:.85">Aponte para o QR code da NF-e</p>
   <button class="qr-cancel" onclick="pararQR()" style="position:absolute;bottom:36px">✕ Cancelar</button>
-</div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-      <button class="btn" onclick="rotacionarCrop(-90)">↺ Girar</button>
-      <button class="btn" onclick="rotacionarCrop(90)">↻ Girar</button>
-    </div>
-    <button class="btn btn-primary mt8" onclick="confirmarCrop()">✅ Usar imagem</button>
-    <button class="btn btn-ghost mt8" onclick="cancelarCrop()">Cancelar</button>
-  </div>
 </div>
 
 <!-- MODAL EDITAR PRESTADOR -->
@@ -511,7 +495,7 @@ const TOMADORES={
   FL:{nome:'IGNIÇÃO DIGITAL TECNOLOGIA DA INFORMAÇÃO LTDA',cnpj:'10.332.345/0001-04',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'},
   FHT:{nome:'FORMULA HIGH TICKET LTDA',cnpj:'53.049.699/0001-40',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'}
 };
-const ME={nome:'Joedres Ferreira Vilas Boas',cnpj:'52.150.205/0001-57',email:'joedres_vilasboas@hotmail.com',tel:'11 97547-8716',banco:'BTG Pactual S.A.',cod:'208',ag:'0050',conta:'848596-8'};
+const ME={nome:'Joedres Ferreira Vilas Boas',cnpj:'52.150.205/0001-57',email:'joedres_vilasboas@hotmail.com',tel:'11 97547-8716',end:'Av. Eugênio Coltro, 1925 - Bl. 05, Ap. 301 - Salto Ville - Salto/SP, 13323-420',banco:'BTG Pactual S.A.',cod:'208',ag:'0050',conta:'848596-8'};
 
 // ─── ESTADO ───────────────────────────────────────────────────
 let S={eventos:[],despesas:[],notaCounter:0,eventoAtivo:''};
@@ -952,39 +936,6 @@ function rejeitarQR(){
   setTimeout(()=>iniciarQR(),300);
 }
 
-function lerQRdaGaleria(e){
-  const f=e.target.files[0];if(!f)return;
-  const reader=new FileReader();
-  reader.onload=async ev=>{
-    try{
-      const img=new Image();
-      img.onload=async()=>{
-        const canvas=document.createElement('canvas');
-        canvas.width=img.width;
-        canvas.height=img.height;
-        canvas.getContext('2d').drawImage(img,0,0);
-        try{
-          // Tenta com ZXing
-          const hints=new Map();
-          hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.QR_CODE]);
-          hints.set(ZXing.DecodeHintType.TRY_HARDER,true);
-          const reader2=new ZXing.BrowserMultiFormatReader(hints);
-          const result=await reader2.decodeFromCanvas(canvas);
-          if(result&&result.getText()){
-            confirmarQR(result.getText());
-          }
-        }catch(err){
-          alert('QR code não encontrado na imagem. Tente uma foto mais nítida ou com melhor iluminação.');
-        }
-      };
-      img.src=ev.target.result;
-    }catch(err){
-      alert('Erro ao ler a imagem.');
-    }
-  };
-  reader.readAsDataURL(f);
-  e.target.value='';
-}
 
 function setNFManual(v){if(v.startsWith('http'))setNF(v.trim())}
 function setNF(link){
