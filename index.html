@@ -473,54 +473,85 @@ let attachs=[];
 let qrStream=null,qrInterval=null;
 let gerarEventoId='';
 
-// ─── STORAGE ──────────────────────────────────────────────────
-// Salva em MÚLTIPLAS chaves para redundância — se uma falhar, as outras ficam
-function salvar(){
+// ─── STORAGE (IndexedDB) ──────────────────────────────────────
+const DB_NAME='nota_debito_db';
+const DB_VERSION=1;
+const STORE_NAME='estado';
+let db=null;
+
+function abrirDB(){
+  return new Promise((resolve,reject)=>{
+    if(db){resolve(db);return}
+    const req=indexedDB.open(DB_NAME,DB_VERSION);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains(STORE_NAME)){
+        d.createObjectStore(STORE_NAME,{keyPath:'id'});
+      }
+    };
+    req.onsuccess=e=>{db=e.target.result;resolve(db)};
+    req.onerror=e=>{console.error('IndexedDB erro:',e);reject(e)};
+  });
+}
+
+async function salvar(){
+  // Backup rápido no localStorage sem imagens (para recuperação de emergência)
   try{
-    const json=JSON.stringify(S);
-    // Chave principal
-    localStorage.setItem('nd_main',json);
-    // Backup com timestamp
-    localStorage.setItem('nd_backup_'+Math.floor(Date.now()/3600000),json);
-    // Limpar backups antigos (manter só os 48 mais recentes = 2 dias)
-    const keys=Object.keys(localStorage).filter(k=>k.startsWith('nd_backup_')).sort();
-    if(keys.length>48) keys.slice(0,keys.length-48).forEach(k=>localStorage.removeItem(k));
+    const semImg={...S,despesas:S.despesas.map(d=>({...d,attachs:(d.attachs||[]).map(a=>({name:a.name,type:a.type,data:null}))}))};
+    localStorage.setItem('nd_emergency',JSON.stringify(semImg));
+  }catch(e){}
+  // Salva tudo no IndexedDB
+  try{
+    const d=await abrirDB();
+    const tx=d.transaction(STORE_NAME,'readwrite');
+    tx.objectStore(STORE_NAME).put({id:'estado',...S});
+    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej});
     atualizarStorageInfo();
   }catch(e){
-    console.error('Erro ao salvar:',e);
-    // Se localStorage cheio (imagens pesadas), salva sem imagens
-    try{
-      const semImagens={...S,despesas:S.despesas.map(d=>({...d,attachs:(d.attachs||[]).map(a=>({name:a.name,type:a.type,data:null}))}))};
-      localStorage.setItem('nd_main',JSON.stringify(semImagens));
-      mostrarMsg('⚠️ Armazenamento cheio: comprovantes não salvos. Exporte o backup!','warn');
-    }catch(e2){console.error(e2)}
+    console.error('Erro ao salvar IndexedDB:',e);
+    mostrarMsg('⚠️ Erro ao salvar dados!','warn');
   }
 }
 
-function carregar(){
+async function carregar(){
   try{
-    const json=localStorage.getItem('nd_main');
-    if(json){S=JSON.parse(json);return true}
-    // Tentar backups
-    const keys=Object.keys(localStorage).filter(k=>k.startsWith('nd_backup_')).sort().reverse();
-    if(keys.length){S=JSON.parse(localStorage.getItem(keys[0]));return true}
+    const d=await abrirDB();
+    const tx=d.transaction(STORE_NAME,'readonly');
+    const req=tx.objectStore(STORE_NAME).get('estado');
+    const resultado=await new Promise((res,rej)=>{req.onsuccess=()=>res(req.result);req.onerror=rej});
+    if(resultado){
+      const {id,...estado}=resultado;
+      S={...S,...estado};
+      return true;
+    }
+    // Tentar migrar do localStorage antigo
+    const ls=localStorage.getItem('nd_main')||localStorage.getItem('nd_emergency')||localStorage.getItem('nd_backup');
+    if(ls){
+      S={...S,...JSON.parse(ls)};
+      await salvar(); // migra para IndexedDB
+      localStorage.removeItem('nd_main');
+      return true;
+    }
   }catch(e){console.error('Erro ao carregar:',e)}
   return false;
 }
 
-function atualizarStorageInfo(){
+async function atualizarStorageInfo(){
+  const el=document.getElementById('storage-info');
+  if(!el)return;
   try{
-    let total=0;
-    for(let k in localStorage){if(localStorage.hasOwnProperty(k))total+=localStorage[k].length*2}
-    const kb=(total/1024).toFixed(0);
-    const mb=(total/1024/1024).toFixed(1);
-    const pct=Math.min(100,Math.round(total/(5*1024*1024)*100));
-    document.getElementById('storage-info').innerHTML=
-      `Usado: <b>${mb}MB</b> de ~5MB (${pct}%)<br>
-       <div style="background:var(--border);border-radius:4px;height:6px;margin-top:6px">
-         <div style="background:${pct>80?'var(--red)':'var(--green)'};width:${pct}%;height:6px;border-radius:4px"></div>
-       </div>`;
-  }catch(e){}
+    // Estima tamanho via JSON
+    const json=JSON.stringify(S);
+    const bytes=new TextEncoder().encode(json).length;
+    const mb=(bytes/1024/1024).toFixed(1);
+    const kb=(bytes/1024).toFixed(0);
+    const disp=bytes>1024*1024?mb+'MB':kb+'KB';
+    el.innerHTML=
+      `<b>IndexedDB</b> — sem limite prático de espaço 🎉<br>
+       <span style="font-size:12px;color:var(--text2)">Dados atuais: ~${disp}</span>`;
+  }catch(e){
+    el.textContent='IndexedDB ativo';
+  }
 }
 
 function exportarBackup(){
@@ -1520,16 +1551,19 @@ function salvarEdicao(){
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
-carregar();
-carregarPrestador();
-renderEventos();
-renderEventoAtivo();
-document.getElementById('data').value=todayStr();
-setTipo('transporte');
-setDia(1);
-atualizarDesc();
-mostrarBannerInstalar();
-atualizarStorageInfo();
+// Init async para aguardar IndexedDB
+(async()=>{
+  await carregar();
+  carregarPrestador();
+  renderEventos();
+  renderEventoAtivo();
+  document.getElementById('data').value=todayStr();
+  setTipo('transporte');
+  setDia(1);
+  atualizarDesc();
+  mostrarBannerInstalar();
+  atualizarStorageInfo();
+})();
 </script>
 </body>
 </html>
