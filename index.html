@@ -1247,14 +1247,14 @@ function gerarPDF(){
   <tr>
     <td style="width:55%;${CELL};border-right:${BRD};vertical-align:top">
       <div class="sec-title">EMITENTE</div>
-      <div class="row"><span class="lbl">NOME/RAZ\u00c3O SOCIAL:</span><br>${me.nome}</div>
-      <div class="row"><span class="lbl">CPF/CNPJ:</span><br>${me.cnpj}</div>
-      <div class="row"><span class="lbl">E-MAIL:</span><br>${me.email}</div>
-      ${endStr?`<div class="row"><span class="lbl">ENDERE\u00c7O:</span><br>${endStr}</div>`:''}
+      <div class="row"><span class="lbl">NOME/RAZ\u00c3O SOCIAL:</span> ${me.nome}</div>
+      <div class="row"><span class="lbl">CPF/CNPJ:</span> ${me.cnpj}</div>
+      <div class="row"><span class="lbl">E-MAIL:</span> ${me.email}</div>
+      ${endStr?`<div class="row"><span class="lbl">ENDERE\u00c7O:</span> ${endStr}</div>`:''}
     </td>
     <td style="width:45%;${CELL};vertical-align:middle;text-align:center">
-      <div style="font-size:24px;font-weight:700;letter-spacing:.02em;margin-bottom:6px">NOTA D\u00c9BITO</div>
-      <div style="font-size:14px;margin-bottom:16px">N\u00ba ${num}</div>
+      <div style="font-size:24px;font-weight:700;letter-spacing:.02em;margin-bottom:4px">NOTA D\u00c9BITO</div>
+      <div style="font-size:14px;padding-bottom:8px;margin-bottom:12px;border-bottom:1px solid #000">N\u00ba ${num}</div>
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <tr><td style="padding:3px 0;text-align:left;width:50%"><span class="lbl">Emiss\u00e3o:</span></td><td style="padding:3px 0">${fd(emissao)}</td></tr>
         <tr><td style="padding:3px 0;text-align:left"><span class="lbl">Refer\u00eancia:</span></td><td style="padding:3px 0">${ref}</td></tr>
@@ -1269,9 +1269,9 @@ function gerarPDF(){
   <tr>
     <td style="${CELL}">
       <div class="sec-title">TOMADOR DO SERVI\u00c7O</div>
-      <div class="row"><span class="lbl">EMPRESA:</span><br>${tom.nome||''}</div>
-      <div class="row"><span class="lbl">CNPJ:</span><br>${tom.cnpj||''}</div>
-      <div class="row"><span class="lbl">ENDERE\u00c7O:</span><br>${tom.end||'SHCN CRN 516 CLN 316 - Asa Norte, Bras\u00edlia'}</div>
+      <div class="row"><span class="lbl">EMPRESA:</span> ${tom.nome||''}</div>
+      <div class="row"><span class="lbl">CNPJ:</span> ${tom.cnpj||''}</div>
+      <div class="row"><span class="lbl">ENDERE\u00c7O:</span> ${tom.end||'SHCN CRN 516 CLN 316 - Asa Norte, Bras\u00edlia'}</div>
     </td>
   </tr>
 </table>
