@@ -257,6 +257,8 @@ textarea{resize:vertical;min-height:68px}
     <div class="slabel" style="margin-top:4px">Dados da nota</div>
     <label>Número da nota</label>
     <input type="text" id="num-nota" />
+    <label>Emissão</label>
+    <input type="date" id="emissao-nota" />
     <label>Referência</label>
     <input type="text" id="ref-nota" placeholder="Ex: Jun-26" />
     <label>Vencimento</label>
@@ -270,11 +272,13 @@ textarea{resize:vertical;min-height:68px}
   <!-- CONFIG -->
   <div id="screen-config" class="screen">
     <div class="slabel">Prestador (você)</div>
-    <div class="info-card">
-      <div class="pf"><div class="fl">Razão Social</div><div class="fv">Joedres Ferreira Vilas Boas</div></div>
-      <div class="pf"><div class="fl">CNPJ</div><div class="fv">52.150.205/0001-57</div></div>
-      <div class="pf"><div class="fl">E-mail</div><div class="fv">joedres_vilasboas@hotmail.com</div></div>
-      <div class="pf"><div class="fl">Telefone</div><div class="fv">11 97547-8716</div></div>
+    <div class="info-card" id="config-prestador-view">
+      <div class="pf"><div class="fl">Razão Social</div><div class="fv" id="cfg-nome">Joedres Ferreira Vilas Boas</div></div>
+      <div class="pf"><div class="fl">CNPJ</div><div class="fv" id="cfg-cnpj">52.150.205/0001-57</div></div>
+      <div class="pf"><div class="fl">E-mail</div><div class="fv" id="cfg-email">joedres_vilasboas@hotmail.com</div></div>
+      <div class="pf"><div class="fl">Telefone</div><div class="fv" id="cfg-tel">11 97547-8716</div></div>
+      <div class="pf"><div class="fl">Endereço</div><div class="fv" id="cfg-end">—</div></div>
+      <button class="btn btn-sm mt8" onclick="abrirEditarPrestador()" style="width:auto">✏️ Editar dados</button>
     </div>
     <div class="slabel">Dados bancários</div>
     <div class="info-card">
@@ -354,6 +358,25 @@ textarea{resize:vertical;min-height:68px}
     </div>
     <button class="btn btn-primary mt8" onclick="confirmarCrop()">✅ Usar imagem</button>
     <button class="btn btn-ghost mt8" onclick="cancelarCrop()">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL EDITAR PRESTADOR -->
+<div class="modal-overlay" id="modal-prestador">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-prestador')">✕</button>
+    <h2>✏️ Editar dados do prestador</h2>
+    <label>Nome / Razão Social</label>
+    <input type="text" id="ep-nome" />
+    <label>CNPJ</label>
+    <input type="text" id="ep-cnpj" />
+    <label>E-mail</label>
+    <input type="text" id="ep-email" />
+    <label>Telefone</label>
+    <input type="text" id="ep-tel" />
+    <label>Endereço</label>
+    <input type="text" id="ep-end" placeholder="Ex: Rua das Flores, 123 – São Paulo SP" />
+    <button class="btn btn-primary mt16" onclick="salvarPrestador()">💾 Salvar</button>
   </div>
 </div>
 
@@ -1027,6 +1050,7 @@ function renderGerar(){
 
   S.notaCounter++;salvar();
   document.getElementById('num-nota').value=padNum(S.notaCounter);
+  document.getElementById('emissao-nota').value=todayStr();
   document.getElementById('ref-nota').value=mesToRef();
   renderGerarPreview();
 }
@@ -1070,36 +1094,49 @@ function gerarPDF(){
   if(!desp.length){alert('Nenhuma despesa neste evento.');return}
 
   const num=(document.getElementById('num-nota').value||padNum(S.notaCounter)).padStart(4,'0');
+  const emissao=document.getElementById('emissao-nota').value||todayStr();
   const ref=document.getElementById('ref-nota').value||'';
   const venc=document.getElementById('venc-nota').value;
   const tom=TOMADORES[ev.tomador]||{};
   const total=desp.reduce((s,d)=>s+d.valor,0);
 
+  // Pega dados atuais do prestador (com edições)
+  const me={
+    nome: document.getElementById('cfg-nome')?.textContent||ME.nome,
+    cnpj: document.getElementById('cfg-cnpj')?.textContent||ME.cnpj,
+    email: document.getElementById('cfg-email')?.textContent||ME.email,
+    tel: document.getElementById('cfg-tel')?.textContent||ME.tel,
+    end: document.getElementById('cfg-end')?.textContent||'',
+    banco: ME.banco, cod: ME.cod, ag: ME.ag, conta: ME.conta
+  };
+
   const linhas=desp.map((d,i)=>`
     <tr>
-      <td style="text-align:center;border:1px solid #000;padding:5px 3px">${i+1}</td>
-      <td style="border:1px solid #000;padding:5px 8px">
-        ${d.desc.split('\n').join('<br>')}
-        ${d.nfLink?'<br><small style="color:#444">NF-e: <a href="'+d.nfLink+'" style="color:#333">'+d.nfLink+'</a></small>':''}
+      <td style="text-align:center;padding:6px 4px;border:1px solid #ccc;vertical-align:top">${i+1}</td>
+      <td style="padding:6px 10px;border:1px solid #ccc;vertical-align:top">
+        <span style="font-weight:600;font-size:11px">${d.desc.split('\n')[0]}</span><br>
+        <em style="font-size:10px;color:#333">${d.desc.split('\n')[1]||''}</em>
+        ${d.nfLink?'<br><small style="color:#555;font-size:9px">NF-e: <a href="'+d.nfLink+'" style="color:#555">'+d.nfLink+'</a></small>':''}
       </td>
-      <td style="text-align:center;border:1px solid #000;padding:5px 3px">1</td>
-      <td style="text-align:right;border:1px solid #000;padding:5px 8px;white-space:nowrap">${parseFloat(d.valor).toFixed(2).replace('.',',')}</td>
+      <td style="text-align:center;padding:6px 4px;border:1px solid #ccc;vertical-align:top">${parseFloat(d.valor).toFixed(2).replace('.',',')}</td>
+      <td style="text-align:right;padding:6px 10px;border:1px solid #ccc;vertical-align:top;white-space:nowrap">${parseFloat(d.valor).toFixed(2).replace('.',',')}</td>
     </tr>`).join('');
 
+  // Comprovantes
   let comprovantesHTML='';
   desp.forEach((d,di)=>{
     if(d.attachs&&d.attachs.length){
       d.attachs.forEach((a,ai)=>{
         if(!a.data)return;
-        const label=`Comprovante ${di+1}.${ai+1} — ${d.desc} (${fd(d.data)}) — ${a.name}`;
+        const label=`Comprovante ${di+1}.${ai+1} — ${d.desc.split('\n')[0]} (${fd(d.data)}) — ${a.name}`;
         if(a.type&&a.type.startsWith('image/')){
           comprovantesHTML+=`<div style="page-break-before:always;padding:20px;text-align:center">
-            <p style="font-size:11px;color:#555;margin-bottom:12px;text-align:left">${label}</p>
+            <p style="font-size:10px;color:#555;margin-bottom:12px;text-align:left">${label}</p>
             <img src="${a.data}" style="max-width:100%;max-height:90vh;object-fit:contain" />
           </div>`;
         }else if(a.type&&a.type.includes('pdf')){
           comprovantesHTML+=`<div style="page-break-before:always;padding:20px">
-            <p style="font-size:11px;color:#555;margin-bottom:12px">${label}</p>
+            <p style="font-size:10px;color:#555;margin-bottom:12px">${label}</p>
             <embed src="${a.data}" type="application/pdf" width="100%" height="90vh" />
           </div>`;
         }
@@ -1110,76 +1147,138 @@ function gerarPDF(){
   const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
 <title>Nota de Débito Nº ${num}</title>
 <style>
-@media print{.no-print{display:none!important}}
-body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#000;margin:20px}
-table.main{width:100%;border-collapse:collapse;border:1px solid #000}
-table.main>tbody>tr>td{border:1px solid #000;padding:8px 10px;vertical-align:top}
-.lbl{font-size:9px;font-weight:bold;color:#555;text-transform:uppercase;display:block;margin-bottom:2px}
-</style></head><body>
-<table class="main"><tbody>
-<tr>
-  <td style="width:62%">
-    <span class="lbl">Emitente · Nome / Razão Social</span>
-    <div style="font-weight:bold;font-size:13px">${ME.nome}</div>
-    <div>CPF/CNPJ: ${ME.cnpj}</div>
-    <div>E-mail: ${ME.email}</div>
-    <div>Telefone: ${ME.tel}</div>
-  </td>
-  <td style="width:38%;text-align:center;vertical-align:middle">
-    <div style="font-size:17px;font-weight:bold;letter-spacing:1px">NOTA DÉBITO</div>
-    <div style="font-size:13px;margin-top:5px">Nº <b>${num}</b></div>
-  </td>
-</tr>
-<tr><td colspan="2" style="padding:8px 10px">
-  <table style="width:100%;border-collapse:collapse">
+  @page{margin:15mm}
+  @media print{.no-print{display:none!important}}
+  *{box-sizing:border-box}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#000;margin:0;padding:0}
+  .page-num{position:fixed;top:0;right:0;font-size:9px;color:#555}
+  table{border-collapse:collapse;width:100%}
+  td,th{vertical-align:top}
+  .section-header{background:#000;color:#fff;font-weight:700;font-size:12px;padding:5px 8px;text-transform:uppercase;letter-spacing:.05em}
+  .lbl{font-size:9px;color:#555;font-weight:600;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:1px}
+  .field{font-size:11px}
+</style>
+</head>
+<body>
+
+<div class="page-num">Página: 1 de 1</div>
+
+<!-- BLOCO EMITENTE + NOTA DÉBITO -->
+<table style="margin-bottom:0">
+  <tr>
+    <td style="width:55%;border:2px solid #000;padding:8px 10px">
+      <div style="font-weight:700;font-size:13px;text-transform:uppercase;margin-bottom:6px">Emitente</div>
+      <span class="lbl">Nome/Razão Social:</span>
+      <span class="field">${me.nome}</span><br><br>
+      <span class="lbl">CPF/CNPJ:</span>
+      <span class="field">${me.cnpj}</span><br><br>
+      <span class="lbl">E-mail:</span>
+      <span class="field">${me.email}</span><br><br>
+      ${me.end&&me.end!=='—'?`<span class="lbl">Endereço:</span><span class="field">${me.end}</span>`:''}
+    </td>
+    <td style="width:45%;border:2px solid #000;border-left:none;padding:8px 10px;text-align:center;vertical-align:middle">
+      <div style="font-size:18px;font-weight:700;letter-spacing:.05em;text-transform:uppercase">Nota Débito</div>
+      <div style="font-size:13px;margin-top:6px">Nº ${num}</div>
+      <div style="margin-top:12px;text-align:left;font-size:11px">
+        <div><b>Emissão:</b> &nbsp;&nbsp;&nbsp;&nbsp;${fd(emissao)}</div>
+        <div style="margin-top:4px"><b>Referência:</b> &nbsp;${ref}</div>
+        <div style="margin-top:4px"><b>Vencimento:</b> ${venc?fd(venc):'00/00/0000'}</div>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<!-- TOMADOR DO SERVIÇO -->
+<table style="margin-top:-2px">
+  <tr>
+    <td style="border:2px solid #000;border-top:none;padding:8px 10px">
+      <div style="font-weight:700;font-size:13px;text-transform:uppercase;margin-bottom:6px">Tomador do Serviço</div>
+      <span class="lbl">Empresa:</span>
+      <span class="field">${tom.nome||''}</span><br><br>
+      <span class="lbl">CNPJ:</span>
+      <span class="field">${tom.cnpj||''}</span><br><br>
+      ${tom.end?`<span class="lbl">Endereço:</span><span class="field">${tom.end}</span>`:''}
+    </td>
+  </tr>
+</table>
+
+<!-- EVENTO -->
+<table style="margin-top:-2px">
+  <tr>
+    <td style="border:2px solid #000;border-top:none;padding:6px 10px">
+      <span style="font-weight:700;font-size:11px;text-transform:uppercase">Evento:</span>
+      <span style="font-size:11px;margin-left:6px">${ev.nome}${ev.cidade?' — '+ev.cidade:''}</span>
+    </td>
+  </tr>
+</table>
+
+<!-- TABELA DE ITENS -->
+<table style="margin-top:-2px">
+  <thead>
     <tr>
-      <td style="width:33%;border:none;padding:0"><span class="lbl">Emissão</span>${fd(todayStr())}</td>
-      <td style="width:33%;border:none;padding:0"><span class="lbl">Referência</span>${ref}</td>
-      <td style="width:33%;border:none;padding:0"><span class="lbl">Vencimento</span>${venc?fd(venc):'—'}</td>
+      <th rowspan="2" style="border:2px solid #000;border-top:none;border-right:1px solid #ccc;padding:6px 4px;text-align:center;width:6%;vertical-align:middle">Item</th>
+      <th rowspan="2" style="border:2px solid #000;border-top:none;border-left:none;border-right:1px solid #ccc;padding:6px 10px;text-align:center;vertical-align:middle">Descrição</th>
+      <th colspan="2" style="border:2px solid #000;border-top:none;border-left:none;padding:6px 4px;text-align:center">Preço (R$)</th>
     </tr>
-  </table>
-</td></tr>
-<tr><td colspan="2">
-  <span class="lbl">Tomador do Serviço · Empresa</span>
-  <div style="font-weight:bold">${tom.nome||''}</div>
-  <div>CNPJ: ${tom.cnpj||''}</div>
-  ${tom.end?'<div>Endereço: '+tom.end+'</div>':''}
-</td></tr>
-<tr><td colspan="2">
-  <span class="lbl">Evento</span>
-  <div>${ev.nome}${ev.cidade?' — '+ev.cidade:''}</div>
-</td></tr>
-<tr><td colspan="2" style="padding:0">
-  <table style="width:100%;border-collapse:collapse">
-    <thead><tr style="background:#f0f0f0">
-      <th style="border:1px solid #000;padding:5px 3px;width:6%;text-align:center;font-size:10px">Item</th>
-      <th style="border:1px solid #000;padding:5px 8px;text-align:left;font-size:10px">Descrição</th>
-      <th style="border:1px solid #000;padding:5px 3px;width:8%;text-align:center;font-size:10px">Unit.</th>
-      <th style="border:1px solid #000;padding:5px 8px;width:13%;text-align:right;font-size:10px">Valor (R$)</th>
-    </tr></thead>
-    <tbody>${linhas}</tbody>
-  </table>
-</td></tr>
-<tr><td colspan="2" style="text-align:right">
-  <span class="lbl">Valor total</span>
-  <span style="font-size:15px;font-weight:bold">R$ ${total.toFixed(2).replace('.',',')}</span>
-</td></tr>
-<tr><td colspan="2">
-  <span class="lbl">Dados bancários para pagamento</span>
-  <div>Banco: <b>${ME.banco}</b> &nbsp;|&nbsp; Código: <b>${ME.cod}</b> &nbsp;|&nbsp; Agência: <b>${ME.ag}</b> &nbsp;|&nbsp; Conta: <b>${ME.conta}</b></div>
-  <div style="margin-top:3px">Favorecido: <b>${ME.nome}</b> &nbsp;|&nbsp; CPF/CNPJ vinculado: <b>${ME.cnpj}</b></div>
-</td></tr>
-<tr><td colspan="2" style="text-align:center;font-size:10px;color:#555">
-  A presente nota de débito não está sujeita a retenção de tributos na fonte.
-</td></tr>
-</tbody></table>
+    <tr>
+      <th style="border:1px solid #ccc;border-top:1px solid #ccc;padding:5px 4px;text-align:center;width:10%">Unit.</th>
+      <th style="border:1px solid #ccc;border-top:1px solid #ccc;padding:5px 10px;text-align:right;width:14%">Valor</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${linhas}
+    <!-- Linhas vazias para manter espaço visual -->
+    ${desp.length<8?Array(8-desp.length).fill('<tr><td style="border:1px solid #ccc;padding:14px 4px">&nbsp;</td><td style="border:1px solid #ccc;padding:14px 10px">&nbsp;</td><td style="border:1px solid #ccc;padding:14px 4px">&nbsp;</td><td style="border:1px solid #ccc;padding:14px 10px">&nbsp;</td></tr>').join(''):''}
+  </tbody>
+</table>
+
+<!-- VALOR TOTAL -->
+<table style="margin-top:-2px">
+  <tr>
+    <td style="border:2px solid #000;border-top:none;padding:8px 10px;text-align:right">
+      <span style="font-size:12px"><b>Valor total:</b> &nbsp;&nbsp; R$ ${total.toFixed(2).replace('.',',')}</span>
+    </td>
+  </tr>
+</table>
+
+<!-- DADOS BANCÁRIOS -->
+<table style="margin-top:-2px">
+  <tr>
+    <td style="border:2px solid #000;border-top:none;padding:8px 10px">
+      <div style="font-weight:700;font-size:11px;text-transform:uppercase;margin-bottom:6px">Dados Bancários para Pagamento:</div>
+      <div style="font-size:11px;line-height:1.9">
+        <b>Banco:</b> ${me.banco}<br>
+        <b>Código:</b> ${me.cod}<br>
+        <b>Agência:</b> ${me.ag}<br>
+        <b>Conta:</b> ${me.conta}<br>
+        <b>Favorecido:</b> ${me.nome}<br>
+        <b>CPF/CNPJ (vinculado à conta):</b> ${me.cnpj}
+      </div>
+    </td>
+  </tr>
+</table>
+
+<!-- RODAPÉ -->
+<table style="margin-top:-2px">
+  <tr>
+    <td style="border:2px solid #000;border-top:none;padding:6px 10px;text-align:center;font-size:9px;color:#555;font-style:italic">
+      A presente nota de débito não está sujeita a retenção de tributos na fonte.
+    </td>
+  </tr>
+</table>
+
 ${comprovantesHTML}
-<button class="no-print" onclick="window.print()" style="display:block;margin:24px auto 0;padding:12px 32px;font-size:15px;cursor:pointer;background:#000;color:#fff;border:none;border-radius:8px">🖨️ Imprimir / Salvar como PDF</button>
+
+<button class="no-print" onclick="window.print()"
+  style="display:block;margin:24px auto 0;padding:12px 32px;font-size:15px;cursor:pointer;background:#000;color:#fff;border:none;border-radius:8px">
+  🖨️ Imprimir / Salvar como PDF
+</button>
 </body></html>`;
 
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
   window.open(URL.createObjectURL(blob),'_blank');
 }
+
 
 // ─── CROP ─────────────────────────────────────────────────────
 
@@ -1201,6 +1300,47 @@ function attachFile(e){
 
 
 // Touch/mouse events for crop
+
+// ─── EDITAR PRESTADOR ────────────────────────────────────────
+function abrirEditarPrestador(){
+  document.getElementById('ep-nome').value=document.getElementById('cfg-nome').textContent||ME.nome;
+  document.getElementById('ep-cnpj').value=document.getElementById('cfg-cnpj').textContent||ME.cnpj;
+  document.getElementById('ep-email').value=document.getElementById('cfg-email').textContent||ME.email;
+  document.getElementById('ep-tel').value=document.getElementById('cfg-tel').textContent||ME.tel;
+  const end=document.getElementById('cfg-end').textContent||'';
+  document.getElementById('ep-end').value=end==='—'?'':end;
+  openModal('modal-prestador');
+}
+
+function salvarPrestador(){
+  document.getElementById('cfg-nome').textContent=document.getElementById('ep-nome').value.trim()||ME.nome;
+  document.getElementById('cfg-cnpj').textContent=document.getElementById('ep-cnpj').value.trim()||ME.cnpj;
+  document.getElementById('cfg-email').textContent=document.getElementById('ep-email').value.trim()||ME.email;
+  document.getElementById('cfg-tel').textContent=document.getElementById('ep-tel').value.trim()||ME.tel;
+  const end=document.getElementById('ep-end').value.trim();
+  document.getElementById('cfg-end').textContent=end||'—';
+  // Salva no estado
+  if(!S.prestador) S.prestador={};
+  S.prestador={
+    nome:document.getElementById('cfg-nome').textContent,
+    cnpj:document.getElementById('cfg-cnpj').textContent,
+    email:document.getElementById('cfg-email').textContent,
+    tel:document.getElementById('cfg-tel').textContent,
+    end:document.getElementById('cfg-end').textContent
+  };
+  salvar();
+  closeModal('modal-prestador');
+}
+
+function carregarPrestador(){
+  if(!S.prestador)return;
+  const p=S.prestador;
+  if(p.nome) document.getElementById('cfg-nome').textContent=p.nome;
+  if(p.cnpj) document.getElementById('cfg-cnpj').textContent=p.cnpj;
+  if(p.email) document.getElementById('cfg-email').textContent=p.email;
+  if(p.tel) document.getElementById('cfg-tel').textContent=p.tel;
+  if(p.end) document.getElementById('cfg-end').textContent=p.end;
+}
 
 // ─── EDITAR DESPESA ───────────────────────────────────────────
 let editTipo='transporte';
@@ -1366,6 +1506,7 @@ function salvarEdicao(){
 
 // ─── INIT ─────────────────────────────────────────────────────
 carregar();
+carregarPrestador();
 renderEventos();
 renderEventoAtivo();
 document.getElementById('data').value=todayStr();
