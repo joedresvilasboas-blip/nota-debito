@@ -184,12 +184,12 @@ textarea{resize:vertical;min-height:68px}
     </div>
 
     <label>Dia do evento</label>
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:4px">
-      <button class="tipo-btn sel" id="dia-btn-1" onclick="setDia(1)">Dia 1</button>
-      <button class="tipo-btn" id="dia-btn-2" onclick="setDia(2)">Dia 2</button>
-      <button class="tipo-btn" id="dia-btn-3" onclick="setDia(3)">Dia 3</button>
-      <button class="tipo-btn" id="dia-btn-4" onclick="setDia(4)">Dia 4</button>
-      <button class="tipo-btn" id="dia-btn-5" onclick="setDia(5)">Dia 5</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <button class="tipo-btn" onclick="ajustarDia(-1)" style="width:48px;font-size:20px;flex-shrink:0">−</button>
+      <input type="number" id="dia-input" value="1" min="1" max="99" inputmode="numeric"
+        style="text-align:center;font-size:20px;font-weight:600;flex:1"
+        oninput="setDiaInput(this.value)" />
+      <button class="tipo-btn" onclick="ajustarDia(1)" style="width:48px;font-size:20px;flex-shrink:0">+</button>
     </div>
 
     <div class="card" style="margin-top:8px;margin-bottom:4px">
@@ -201,7 +201,8 @@ textarea{resize:vertical;min-height:68px}
     <input type="date" id="data" />
 
     <label>Valor (R$)</label>
-    <input type="number" id="valor" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+    <input type="text" id="valor" placeholder="R$ 0,00" inputmode="numeric"
+      oninput="mascaraValor(this)" style="font-size:18px;font-weight:500" />
 
     <div class="slabel">Nota fiscal / comprovante</div>
     <div class="drop" onclick="iniciarQR()" id="qr-area">
@@ -326,7 +327,7 @@ textarea{resize:vertical;min-height:68px}
   <button class="qr-cancel" onclick="pararQR()">✕ Cancelar</button>
 </div>
 
-<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
 <script>
 // ─── DADOS ────────────────────────────────────────────────────
 const TOMADORES={
@@ -604,11 +605,34 @@ function setTipo(t){
 }
 
 function setDia(d){
-  diaAtivo=d;
-  for(let i=1;i<=5;i++){
-    document.getElementById('dia-btn-'+i).className='tipo-btn'+(i===d?' sel':'');
-  }
+  diaAtivo=Math.max(1,Math.min(99,d));
+  const el=document.getElementById('dia-input');
+  if(el) el.value=diaAtivo;
   atualizarDesc();
+}
+
+function ajustarDia(delta){
+  setDia(diaAtivo+delta);
+}
+
+function setDiaInput(v){
+  const n=parseInt(v);
+  if(!isNaN(n)&&n>=1){diaAtivo=n;atualizarDesc();}
+}
+
+function mascaraValor(input){
+  let v=input.value.replace(/\D/g,'');
+  if(!v){input.value='';return}
+  v=parseInt(v,10);
+  const formatted=(v/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  input.value=formatted;
+}
+
+function getValorNumerico(){
+  const v=document.getElementById('valor').value;
+  // Remove R$, pontos de milhar, troca vírgula por ponto
+  const n=parseFloat(v.replace(/[R$\s.]/g,'').replace(',','.'));
+  return isNaN(n)?0:n;
 }
 
 function getNomeEvento(){
@@ -635,32 +659,36 @@ function atualizarDesc(){
 }
 
 // ─── QR CODE ──────────────────────────────────────────────────
+let zxingReader=null;
+
 async function iniciarQR(){
+  document.getElementById('qr-video-wrap').classList.add('open');
   try{
-    qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    if(!zxingReader){
+      zxingReader=new ZXing.BrowserMultiFormatReader();
+    }
     const video=document.getElementById('qr-video');
-    video.srcObject=qrStream;
-    document.getElementById('qr-video-wrap').classList.add('open');
-    const canvas=document.createElement('canvas');
-    const ctx=canvas.getContext('2d');
-    qrInterval=setInterval(()=>{
-      if(video.readyState===video.HAVE_ENOUGH_DATA){
-        canvas.width=video.videoWidth;canvas.height=video.videoHeight;
-        ctx.drawImage(video,0,0);
-        const img=ctx.getImageData(0,0,canvas.width,canvas.height);
-        const code=jsQR(img.data,img.width,img.height);
-        if(code&&code.data){pararQR();setNF(code.data)}
+    await zxingReader.decodeFromConstraints(
+      {video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}},
+      video,
+      (result,err)=>{
+        if(result){
+          const txt=result.getText();
+          if(txt){pararQR();setNF(txt);}
+        }
       }
-    },250);
+    );
   }catch(e){
+    console.error('QR error:',e);
+    pararQR();
     alert('Câmera não disponível. Cole o link manualmente.');
   }
 }
 
 function pararQR(){
-  clearInterval(qrInterval);
-  if(qrStream)qrStream.getTracks().forEach(t=>t.stop());
-  qrStream=null;
+  if(zxingReader){
+    try{zxingReader.reset();}catch(e){}
+  }
   document.getElementById('qr-video-wrap').classList.remove('open');
 }
 
@@ -704,7 +732,7 @@ function addDespesa(){
     if(!outroval){showAddMsg('⚠️ Descreva o tipo de despesa.','err');return}
   }
   const data=document.getElementById('data').value;
-  const valor=parseFloat(document.getElementById('valor').value);
+  const valor=getValorNumerico();
   if(!data){showAddMsg('⚠️ Informe a data.','err');return}
   if(!valor||valor<=0){showAddMsg('⚠️ Informe um valor válido.','err');return}
 
@@ -724,7 +752,7 @@ function addDespesa(){
 
   // Limpa campos — mantém data, tipo e dia
   const dataAtual=document.getElementById('data').value;
-  document.getElementById('valor').value='';
+  document.getElementById('valor').value='R$ 0,00';
   document.getElementById('data').value=dataAtual;
   if(tipo==='outro') document.getElementById('outro-tipo').value='';
   clearNF();attachs=[];renderAttachs();
