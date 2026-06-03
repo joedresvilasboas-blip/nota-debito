@@ -317,8 +317,20 @@ textarea{resize:vertical;min-height:68px}
     <button class="modal-close" onclick="closeModal('modal-evento')">✕</button>
     <h2 id="modal-evento-title">Novo evento</h2>
     <input type="hidden" id="ev-edit-id" value="" />
-    <label>Nome do evento / imersão</label>
-    <input type="text" id="ev-nome" placeholder="Ex: Imersão Campinas" />
+    <label>Nome do evento</label>
+    <select id="ev-nome-select" onchange="updateEvNome()">
+      <option value="">Selecione o evento</option>
+      <option value="Imersão Lançamento Semente">Imersão Lançamento Semente</option>
+      <option value="Renovação INSIDER">Renovação INSIDER</option>
+      <option value="Renovação PLAT">Renovação PLAT</option>
+      <option value="Mundo Paralelo">Mundo Paralelo</option>
+      <option value="outro">Outro (digitar)</option>
+    </select>
+    <div id="ev-nome-outro-wrap" style="display:none">
+      <label>Nome do evento</label>
+      <input type="text" id="ev-nome" placeholder="Ex: Imersão Campinas" />
+    </div>
+    <input type="hidden" id="ev-nome-hidden" />
     <label>Tomador do serviço</label>
     <select id="ev-tomador" onchange="updateEvTomador()">
       <option value="">Selecione quem vai pagar</option>
@@ -691,6 +703,18 @@ function selecionarEvento(id){
 function openModal(id){document.getElementById(id).classList.add('open')}
 function closeModal(id){document.getElementById(id).classList.remove('open')}
 
+function updateEvNome(){
+  const sel=document.getElementById('ev-nome-select').value;
+  const wrap=document.getElementById('ev-nome-outro-wrap');
+  if(sel==='outro'){
+    wrap.style.display='block';
+    document.getElementById('ev-nome').value='';
+    document.getElementById('ev-nome').focus();
+  } else {
+    wrap.style.display='none';
+  }
+}
+
 function autoFim(){
   const inicio=document.getElementById('ev-inicio').value;
   const fim=document.getElementById('ev-fim').value;
@@ -705,7 +729,9 @@ function updateEvTomador(){
 }
 
 function salvarEvento(){
-  const nome=document.getElementById('ev-nome').value.trim();
+  const sel=document.getElementById('ev-nome-select').value;
+  const nomeInput=document.getElementById('ev-nome')?.value.trim()||'';
+  const nome=sel==='outro'?nomeInput:(sel||nomeInput);
   const tomador=document.getElementById('ev-tomador').value;
   const cidade=document.getElementById('ev-cidade').value.trim();
   const inicio=document.getElementById('ev-inicio').value;
@@ -727,7 +753,11 @@ function salvarEvento(){
 }
 
 function limparModalEvento(){
-  ['ev-edit-id','ev-nome','ev-cidade','ev-inicio','ev-fim'].forEach(id=>document.getElementById(id).value='');
+  ['ev-edit-id','ev-cidade','ev-inicio','ev-fim'].forEach(id=>document.getElementById(id).value='');
+  const nomeEl=document.getElementById('ev-nome');
+  if(nomeEl) nomeEl.value='';
+  document.getElementById('ev-nome-select').value='';
+  document.getElementById('ev-nome-outro-wrap').style.display='none';
   document.getElementById('ev-tomador').value='';
   document.getElementById('ev-msg').textContent='';
   document.getElementById('ev-tomador-info').style.display='none';
@@ -737,7 +767,17 @@ function limparModalEvento(){
 function editarEvento(id){
   const ev=S.eventos.find(e=>e.id===id);if(!ev)return;
   document.getElementById('ev-edit-id').value=ev.id;
-  document.getElementById('ev-nome').value=ev.nome;
+  // Preenche select ou campo livre
+  const presets=['Imersão Lançamento Semente','Renovação INSIDER','Renovação PLAT','Mundo Paralelo'];
+  const sel=document.getElementById('ev-nome-select');
+  if(presets.includes(ev.nome)){
+    sel.value=ev.nome;
+    document.getElementById('ev-nome-outro-wrap').style.display='none';
+  } else {
+    sel.value='outro';
+    document.getElementById('ev-nome-outro-wrap').style.display='block';
+    document.getElementById('ev-nome').value=ev.nome;
+  }
   document.getElementById('ev-tomador').value=ev.tomador;
   document.getElementById('ev-cidade').value=ev.cidade||'';
   document.getElementById('ev-inicio').value=ev.inicio;
