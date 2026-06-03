@@ -1198,16 +1198,17 @@ function gerarPDF(){
   const tom=TOMADORES[ev.tomador]||{};
   const total=desp.reduce((s,d)=>s+d.valor,0);
 
+  const p=S.prestador||{};
   const me={
-    nome: document.getElementById('cfg-nome')?.textContent.trim()||ME.nome,
-    cnpj: document.getElementById('cfg-cnpj')?.textContent.trim()||ME.cnpj,
-    email: document.getElementById('cfg-email')?.textContent.trim()||ME.email,
-    end: document.getElementById('cfg-end')?.textContent.trim()||'',
-    banco:p.banco||ME.banco+' ('+ME.cod+')',
-    ag:p.agencia||ME.ag,
-    conta:p.conta||ME.conta,
-    titular:p.titular||ME.nome,
-    cnpjConta:p.cnpjBanco||ME.cnpj
+    nome: p.nome||document.getElementById('cfg-nome')?.textContent.trim()||ME.nome,
+    cnpj: p.cnpj||document.getElementById('cfg-cnpj')?.textContent.trim()||ME.cnpj,
+    email: p.email||document.getElementById('cfg-email')?.textContent.trim()||ME.email,
+    end: p.end||document.getElementById('cfg-end')?.textContent.trim()||'',
+    banco: p.banco||ME.banco+' ('+ME.cod+')',
+    ag: p.agencia||ME.ag,
+    conta: p.conta||ME.conta,
+    titular: p.titular||ME.nome,
+    cnpjConta: p.cnpjBanco||ME.cnpj
   };
   const endStr=(me.end&&me.end!=='\u2014'&&me.end!=='')?me.end:'';
 
@@ -1350,7 +1351,6 @@ function gerarPDF(){
     <td style="${CELL}">
       <div class="sec-title" style="font-size:12px">DADOS BANC\u00c1RIOS PARA PAGAMENTO:</div>
       <div class="row"><span class="lbl">Banco:</span> ${me.banco}</div>
-      <div class="row"><span class="lbl">C\u00f3digo:</span> ${me.cod}</div>
       <div class="row"><span class="lbl">Ag\u00eancia:</span> ${me.ag}</div>
       <div class="row"><span class="lbl">Conta:</span> ${me.conta}</div>
       <div class="row"><span class="lbl">Favorecido:</span> ${me.nome}</div>
