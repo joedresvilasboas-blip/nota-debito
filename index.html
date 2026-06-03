@@ -1129,17 +1129,17 @@ function attachFile(e){
   const reader=new FileReader();
   reader.onload=ev=>{
     if(f.type.startsWith('image/')){
-      // Abrir crop modal
       cropState={scale:1,rot:0,x:0,y:0,startX:0,startY:0,dragging:false,pinchDist:0,
         origDataUrl:ev.target.result,origName:f.name,origType:f.type};
       const img=document.getElementById('crop-img');
-      img.src=ev.target.result;
+      // Abre o modal ANTES de setar src para wrap ter dimensões reais
+      document.getElementById('crop-modal').classList.add('open');
       img.onload=()=>{
-        fitCropImage();
-        document.getElementById('crop-modal').classList.add('open');
+        // Pequeno delay para garantir que o modal está visível e tem dimensões
+        requestAnimationFrame(()=>requestAnimationFrame(()=>fitCropImage()));
       };
+      img.src=ev.target.result;
     } else {
-      // PDF — adicionar direto
       attachs.push({name:f.name,type:f.type,data:ev.target.result});
       renderAttachs();
     }
@@ -1151,17 +1151,24 @@ function attachFile(e){
 function fitCropImage(){
   const wrap=document.getElementById('crop-wrap');
   const img=document.getElementById('crop-img');
-  const ww=wrap.clientWidth, wh=wrap.clientHeight;
   const iw=img.naturalWidth, ih=img.naturalHeight;
   if(!iw||!ih)return;
-  // COVER: preenche toda a área (como object-fit:cover)
-  const scaleW=ww/iw;
-  const scaleH=wh/ih;
-  cropState.scale=Math.max(scaleW,scaleH);
-  cropState.x=0;
-  cropState.y=0;
-  cropState.rot=0;
-  applyCropTransform();
+
+  // Define altura 9:16 baseada na largura real do wrap
+  const ww=wrap.offsetWidth||wrap.clientWidth||300;
+  const wh=Math.round(ww*(16/9));
+  wrap.style.height=wh+'px';
+
+  // Aguarda repaint para ter dimensões corretas e calcula cover
+  requestAnimationFrame(()=>{
+    const scaleW=ww/iw;
+    const scaleH=wh/ih;
+    cropState.scale=Math.max(scaleW,scaleH);
+    cropState.x=0;
+    cropState.y=0;
+    cropState.rot=0;
+    applyCropTransform();
+  });
 }
 
 function applyCropTransform(){
