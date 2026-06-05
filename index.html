@@ -135,6 +135,8 @@ textarea{resize:vertical;min-height:68px}
 #add-msg{font-size:13px;margin-top:10px;text-align:center;min-height:18px}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
 <!-- TELA DE LOGIN -->
@@ -327,8 +329,8 @@ textarea{resize:vertical;min-height:68px}
     <label>Vencimento</label>
     <input type="date" id="venc-nota" />
     <div id="gerar-preview" style="margin-top:16px"></div>
-    <button class="btn btn-primary mt8" onclick="gerarPDF()">📥 Gerar Nota de Débito</button>
-    <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:8px">Abre em nova aba — salve como PDF</p>
+    <button class="btn btn-primary mt8" id="btn-gerar-pdf" onclick="gerarPDFUnificado()">📥 Gerar Nota de Débito (PDF)</button>
+    <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:8px">Gera um único PDF com nota + comprovantes</p>
     <button class="btn btn-danger btn-ghost mt16" onclick="limparEvento()">🗑️ Limpar despesas do evento</button>
   </div>
 
@@ -1548,6 +1550,219 @@ function limparEvento(){
 }
 
 // ─── GERAR PDF ────────────────────────────────────────────────
+async function gerarPDFUnificado(){
+  if(!gerarEventoId){alert('Selecione um evento.');return}
+  const ev=S.eventos.find(e=>e.id===gerarEventoId);
+  if(!ev){alert('Evento não encontrado.');return}
+  const desp=S.despesas.filter(d=>d.eventoId===gerarEventoId);
+  if(!desp.length){alert('Nenhuma despesa neste evento.');return}
+
+  const btn=document.getElementById('btn-gerar-pdf');
+  btn.textContent='⏳ Gerando PDF...';
+  btn.disabled=true;
+
+  try{
+    // 1. Gerar HTML da nota e converter para imagem com html2canvas
+    const notaHTML = gerarHTMLNota(ev, desp);
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText='position:fixed;left:-9999px;top:0;width:794px;height:1123px;border:none;background:#fff';
+    document.body.appendChild(iframe);
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(notaHTML);
+    iframe.contentDocument.close();
+
+    await new Promise(r=>setTimeout(r,800)); // aguarda renderização
+
+    // Capturar páginas da nota (pode ter mais de uma se muitos itens)
+    const notaEl = iframe.contentDocument.body;
+    const canvas = await html2canvas(notaEl, {
+      scale:2, useCORS:true, backgroundColor:'#ffffff',
+      width:794, windowWidth:794
+    });
+    document.body.removeChild(iframe);
+
+    // 2. Criar PDF com pdf-lib
+    const { PDFDocument, rgb } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+
+    // Adicionar página da nota
+    const notaImgBytes = canvas.toDataURL('image/jpeg', 0.95);
+    const notaImg = await pdfDoc.embedJpg(notaImgBytes.split(',')[1].replace(/\s/g,''));
+    const notaPage = pdfDoc.addPage([595, 842]); // A4
+    const { width, height } = notaPage.getSize();
+    notaPage.drawImage(notaImg, {x:0, y:0, width, height});
+
+    // 3. Adicionar comprovantes
+    for(const d of desp){
+      for(const a of (d.attachs||[])){
+        if(!a.data) continue;
+        try{
+          if(a.type && a.type.startsWith('image/')){
+            // Imagem → página A4
+            let imgEmbed;
+            const base64 = a.data.split(',')[1].replace(/\s/g,'');
+            if(a.type.includes('png')){
+              imgEmbed = await pdfDoc.embedPng(base64);
+            } else {
+              imgEmbed = await pdfDoc.embedJpg(base64);
+            }
+            const page = pdfDoc.addPage([595, 842]);
+            const pw = page.getWidth(), ph = page.getHeight();
+            const iw = imgEmbed.width, ih = imgEmbed.height;
+            const scale = Math.min((pw-40)/iw, (ph-60)/ih);
+            const dw = iw*scale, dh = ih*scale;
+            const x = (pw-dw)/2, y = (ph-dh)/2;
+            // Label do comprovante
+            page.drawText(`${d.desc.split('\n')[0]} — ${a.name}`, {
+              x:20, y:ph-20, size:8, color:rgb(0.4,0.4,0.4),
+              maxWidth: pw-40
+            });
+            page.drawImage(imgEmbed, {x, y, width:dw, height:dh});
+
+          } else if(a.type && a.type.includes('pdf')){
+            // PDF → copiar páginas
+            const base64 = a.data.split(',')[1].replace(/\s/g,'');
+            const pdfBytes = Uint8Array.from(atob(base64), c=>c.charCodeAt(0));
+            const srcPdf = await PDFDocument.load(pdfBytes, {ignoreEncryption:true});
+            const pageCount = srcPdf.getPageCount();
+            const copiedPages = await pdfDoc.copyPages(srcPdf, [...Array(pageCount).keys()]);
+            copiedPages.forEach(p=>pdfDoc.addPage(p));
+          }
+        }catch(e){ console.warn('Erro ao adicionar comprovante:', a.name, e); }
+      }
+    }
+
+    // 4. Baixar PDF
+    const num=(document.getElementById('num-nota').value||padNum(S.notaCounter)).padStart(4,'0');
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Nota_de_Debito_N${num}_${ev.nome.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+  }catch(e){
+    console.error('Erro ao gerar PDF:', e);
+    alert('Erro ao gerar PDF: '+e.message+'\n\nTentando abrir versão HTML...');
+    gerarPDF(); // fallback
+  }finally{
+    btn.textContent='📥 Gerar Nota de Débito (PDF)';
+    btn.disabled=false;
+  }
+}
+
+// Extrai o HTML da nota para o html2canvas
+function gerarHTMLNota(ev, desp){
+  const num=(document.getElementById('num-nota').value||padNum(S.notaCounter)).padStart(4,'0');
+  const emissao=document.getElementById('emissao-nota').value||todayStr();
+  const ref=document.getElementById('ref-nota').value||'';
+  const venc=document.getElementById('venc-nota').value||todayStr();
+  const tom=TOMADORES[ev.tomador]||{};
+  const total=desp.reduce((s,d)=>s+d.valor,0);
+  const p=S.prestador||{};
+  const me={
+    nome:p.nome||ME.nome, cnpj:p.cnpj||ME.cnpj,
+    email:p.email||ME.email, end:p.end||'',
+    banco:p.banco||ME.banco+' ('+ME.cod+')',
+    ag:p.agencia||ME.ag, conta:p.conta||ME.conta,
+    titular:p.titular||p.nome||ME.nome,
+    cnpjConta:p.cnpjBanco||p.cnpj||ME.cnpj
+  };
+  const endStr=(me.end&&me.end!=='—'&&me.end!=='')?me.end:'';
+  const BRD='1px solid #000';
+
+  const linhas=desp.map((d,i)=>`
+    <tr>
+      <td style="text-align:center;padding:5px 4px;border-right:${BRD};vertical-align:top">${i+1}</td>
+      <td style="padding:5px 10px;border-right:${BRD};vertical-align:top">
+        <strong>${d.desc.split('\n')[0]}</strong><br>
+        ${(()=>{const l=d.desc.split('\n')[1]||'';const p=l.indexOf('|');return p>-1?l.slice(0,p+1)+'<em>'+l.slice(p+1)+'</em>':l})()}
+        ${d.nfLink?` &nbsp;<a href="${d.nfLink}" style="font-size:9px;color:#1a56db">Ver NF-e »</a>`:''}
+      </td>
+      <td style="text-align:center;padding:5px 4px;border-right:${BRD};vertical-align:top">1</td>
+      <td style="text-align:right;padding:5px 10px;vertical-align:top;white-space:nowrap">${parseFloat(d.valor).toFixed(2).replace('.',',')}</td>
+    </tr>`).join('');
+
+  const emptyCount=Math.max(0,8-desp.length);
+  const emptyH=desp.length>6?8:desp.length>4?14:20;
+  const emptyRows=Array(emptyCount).fill(`<tr>
+    <td style="padding:${emptyH}px 4px;border-right:${BRD}">&nbsp;</td>
+    <td style="padding:${emptyH}px 10px;border-right:${BRD}">&nbsp;</td>
+    <td style="padding:${emptyH}px 4px;border-right:${BRD}">&nbsp;</td>
+    <td style="padding:${emptyH}px 10px">&nbsp;</td></tr>`).join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#000;width:794px;background:#fff;padding:30px}
+table{width:100%;border-collapse:collapse}
+.blk{border:${BRD}}.blk-t{border:${BRD};border-top:none}
+.sec-title{font-weight:700;font-size:19px;margin-bottom:6px}
+.row{margin-bottom:3px}.lbl{font-weight:bold}
+</style></head><body>
+<div style="text-align:right;font-size:10px;color:#555;margin-bottom:3px">Página: 1 de 1</div>
+<table class="blk">
+  <tr>
+    <td style="width:55%;padding:5px 10px;border-right:${BRD};vertical-align:top">
+      <div class="sec-title">EMITENTE</div>
+      <div class="row"><span class="lbl">NOME/RAZÃO SOCIAL:</span> ${me.nome}</div>
+      <div class="row"><span class="lbl">CPF/CNPJ:</span> ${me.cnpj}</div>
+      <div class="row"><span class="lbl">E-MAIL:</span> ${me.email}</div>
+      ${endStr?`<div class="row"><span class="lbl">ENDEREÇO:</span> ${endStr}</div>`:''}
+    </td>
+    <td style="width:45%;padding:5px 10px;vertical-align:top;text-align:center">
+      <div style="font-size:22px;font-weight:700;margin-bottom:3px">NOTA DÉBITO</div>
+      <div style="font-size:13px;padding-bottom:5px;margin-bottom:8px;border-bottom:${BRD}">Nº ${num}</div>
+      <table style="width:90%;margin:0 auto;font-size:12px">
+        <tr><td style="text-align:left;width:48%;padding:2px 0"><span class="lbl">EMISSÃO:</span></td><td style="padding:2px 0">${fd(emissao)}</td></tr>
+        <tr><td style="text-align:left;padding:2px 0"><span class="lbl">REFERÊNCIA:</span></td><td style="padding:2px 0">${ref}</td></tr>
+        <tr><td style="text-align:left;padding:2px 0"><span class="lbl">VENCIMENTO:</span></td><td style="padding:2px 0">${fd(venc)}</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table class="blk-t"><tr><td style="padding:5px 10px">
+  <div class="sec-title">TOMADOR DO SERVIÇO</div>
+  <div class="row"><span class="lbl">EMPRESA:</span> ${tom.nome||''}</div>
+  <div class="row"><span class="lbl">CNPJ:</span> ${tom.cnpj||''}</div>
+  <div class="row"><span class="lbl">ENDEREÇO:</span> ${tom.end||'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'}</div>
+</td></tr></table>
+<table class="blk-t"><tr><td style="padding:5px 10px">
+  <strong>EVENTO:</strong>&nbsp;${ev.nome}${ev.cidade?' — '+ev.cidade:''}
+</td></tr></table>
+<table class="blk-t">
+  <thead>
+    <tr>
+      <th rowspan="2" style="width:6%;padding:3px 4px;text-align:center;border-right:${BRD};border-bottom:${BRD};vertical-align:middle">Item</th>
+      <th rowspan="2" style="padding:3px 10px;text-align:center;border-right:${BRD};border-bottom:${BRD};vertical-align:middle">Descrição</th>
+      <th colspan="2" style="padding:3px 4px;text-align:center;border-bottom:${BRD}">Preço (R$)</th>
+    </tr>
+    <tr>
+      <th style="width:10%;padding:3px 4px;text-align:center;border-right:${BRD};border-bottom:${BRD}">Unit.</th>
+      <th style="width:14%;padding:3px 10px;text-align:right;border-bottom:${BRD}">Valor</th>
+    </tr>
+  </thead>
+  <tbody>${linhas}${emptyRows}</tbody>
+</table>
+<table class="blk-t"><tr><td style="padding:6px 10px;text-align:right;font-size:12px">
+  <strong>Valor total:</strong>&nbsp;&nbsp;R$ ${total.toFixed(2).replace('.',',')}
+</td></tr></table>
+<table class="blk-t"><tr><td style="padding:8px 10px">
+  <div style="font-weight:700;font-size:11px;text-transform:uppercase;margin-bottom:6px">Dados Bancários para Pagamento:</div>
+  <div class="row"><span class="lbl">Banco:</span> ${me.banco}</div>
+  <div class="row"><span class="lbl">Agência:</span> ${me.ag}</div>
+  <div class="row"><span class="lbl">Conta:</span> ${me.conta}</div>
+  <div class="row"><span class="lbl">Favorecido:</span> ${me.titular}</div>
+  <div class="row"><span class="lbl">CPF/CNPJ (vinculado a conta):</span> ${me.cnpjConta}</div>
+</td></tr></table>
+<table class="blk-t"><tr><td style="padding:4px 10px;text-align:center;font-size:9px;color:#555;font-style:italic">
+  A presente nota de débito não está sujeita à retenção de tributos na fonte.
+</td></tr></table>
+</body></html>`;
+}
+
 function gerarPDF(){
   if(!gerarEventoId){alert('Selecione um evento.');return}
   const ev=S.eventos.find(e=>e.id===gerarEventoId);
