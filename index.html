@@ -577,12 +577,14 @@ textarea{resize:vertical;min-height:68px}
 <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
 <script>
 // ─── DADOS ────────────────────────────────────────────────────
-const TOMADORES={
+const TOMADORES_PADRAO={
   PLAT:{nome:'PLAT MENTORIAS E TREINAMENTOS LTDA',cnpj:'45.805.035/0001-36',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'},
   INSIDER:{nome:'INSIDER MENTORIAS E TREINAMENTOS LTDA',cnpj:'34.295.555/0001-20',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'},
   FL:{nome:'IGNIÇÃO DIGITAL TECNOLOGIA DA INFORMAÇÃO LTDA',cnpj:'10.332.345/0001-04',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'},
   FHT:{nome:'FORMULA HIGH TICKET LTDA',cnpj:'53.049.699/0001-40',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'}
 };
+// TOMADORES é o objeto ativo — começa com os padrões
+const TOMADORES=JSON.parse(JSON.stringify(TOMADORES_PADRAO));
 const ME={nome:'Joedres Ferreira Vilas Boas',cnpj:'52.150.205/0001-57',email:'joedres_vilasboas@hotmail.com',tel:'11 97547-8716',end:'Av. Eugênio Coltro, 1925 - Bl. 05, Ap. 301 - Salto Ville - Salto/SP, 13323-420',banco:'BTG Pactual S.A.',cod:'208',ag:'0050',conta:'848596-8'};
 
 // ─── ESTADO ───────────────────────────────────────────────────
@@ -774,7 +776,9 @@ async function iniciarDrive(){
     S.eventos = global.eventos || [];
     S.notaCounter = global.notaCounter || 0;
     S.prestador = global.prestador || {};
-    S.tomadores = global.tomadores || {};
+    // Mescla padrões com customizados salvos (customizados têm prioridade)
+    S.tomadores = {...TOMADORES_PADRAO, ...(global.tomadores||{})};
+    Object.assign(TOMADORES, S.tomadores);
     if(global.eventoAtivo) S.eventoAtivo = global.eventoAtivo;
 
     // 4. Carregar despesas de cada evento (pasta própria)
@@ -1799,8 +1803,9 @@ function salvarBanco(){
 let tomadoresEdit=[];
 
 function abrirEditarTomadores(){
-  // Inicializa com dados atuais do TOMADORES
-  tomadoresEdit=Object.entries(S.tomadores||TOMADORES).map(([key,t])=>({key,...t}));
+  // Mescla padrões com salvos — garante que sempre aparece tudo
+  const merged={...TOMADORES_PADRAO,...TOMADORES,...(S.tomadores||{})};
+  tomadoresEdit=Object.entries(merged).map(([key,t])=>({key,...t}));
   renderTomadoresEdit();
   openModal('modal-tomadores');
 }
@@ -1840,11 +1845,12 @@ function removerTomador(i){
 }
 
 function salvarTomadores(){
-  // Limpa TOMADORES e reconstrói
+  // Reconstrói TOMADORES a partir da edição
   Object.keys(TOMADORES).forEach(k=>delete TOMADORES[k]);
   tomadoresEdit.forEach(t=>{
     if(t.key&&t.nome) TOMADORES[t.key]={nome:t.nome,cnpj:t.cnpj,end:t.end||''};
   });
+  // Garante que padrões sem edição também ficam
   S.tomadores=JSON.parse(JSON.stringify(TOMADORES));
   // Atualiza view na aba dados
   document.getElementById('cfg-tomadores-list').innerHTML=
@@ -1939,12 +1945,13 @@ function carregarPrestador(){
   if(p.cnpjBanco) document.getElementById('cfg-cnpj-banco').textContent=p.cnpjBanco;
   // Envio
   if(p.emailEnvio) document.getElementById('cfg-email-envio').textContent=p.emailEnvio;
-  // Tomadores
-  if(S.tomadores){
-    Object.assign(TOMADORES,S.tomadores);
-    document.getElementById('cfg-tomadores-list').innerHTML=
-      Object.entries(TOMADORES).map(([k,t])=>`<b>${k}</b> — CNPJ ${t.cnpj}<br>`).join('');
-  }
+  // Tomadores — mescla padrões com salvos
+  const tomMerged={...TOMADORES_PADRAO,...(S.tomadores||{})};
+  Object.keys(TOMADORES).forEach(k=>delete TOMADORES[k]);
+  Object.assign(TOMADORES, tomMerged);
+  S.tomadores=JSON.parse(JSON.stringify(TOMADORES));
+  document.getElementById('cfg-tomadores-list').innerHTML=
+    Object.entries(TOMADORES).map(([k,t])=>`<b>${k}</b> — CNPJ ${t.cnpj}<br>`).join('');
 }
 
 // ─── EDITAR DESPESA ───────────────────────────────────────────
