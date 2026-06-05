@@ -173,7 +173,7 @@ textarea{resize:vertical;min-height:68px}
     <label>E-mail *</label>
     <input type="text" id="setup-email" />
     <label>Telefone</label>
-    <input type="text" id="setup-tel" placeholder="Ex: 11 99999-9999" />
+    <input type="text" id="setup-tel" placeholder="(11) 99999-9999" inputmode="numeric" oninput="mascaraTel(this)" maxlength="15" />
     <label>Endereço</label>
     <input type="text" id="setup-end" placeholder="Ex: Rua das Flores, 123 – São Paulo SP" />
 
@@ -442,7 +442,7 @@ textarea{resize:vertical;min-height:68px}
     <label>E-mail</label>
     <input type="text" id="ep-email" />
     <label>Telefone</label>
-    <input type="text" id="ep-tel" />
+    <input type="text" id="ep-tel" placeholder="(11) 99999-9999" inputmode="numeric" oninput="mascaraTel(this)" maxlength="15" />
     <label>Endereço</label>
     <input type="text" id="ep-end" placeholder="Ex: Rua das Flores, 123 – São Paulo SP" />
     <button class="btn btn-primary mt16" onclick="salvarPrestador()">💾 Salvar</button>
@@ -1192,6 +1192,19 @@ function setDiaInput(v){
   }
 }
 
+function mascaraTel(input){
+  let v = input.value.replace(/\D/g,'');
+  if(v.length > 11) v = v.slice(0,11);
+  if(v.length > 7){
+    v = '('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);
+  } else if(v.length > 2){
+    v = '('+v.slice(0,2)+') '+v.slice(2);
+  } else if(v.length > 0){
+    v = '('+v;
+  }
+  input.value = v;
+}
+
 function mascaraValor(input){
   let v=input.value.replace(/\D/g,'');
   if(!v){input.value='';return}
@@ -1867,7 +1880,11 @@ function carregarPrestador(){
   if(p.nome) document.getElementById('cfg-nome').textContent=p.nome;
   if(p.cnpj) document.getElementById('cfg-cnpj').textContent=p.cnpj;
   if(p.email) document.getElementById('cfg-email').textContent=p.email;
-  if(p.tel) document.getElementById('cfg-tel').textContent=p.tel;
+  if(p.tel){
+    document.getElementById('cfg-tel').textContent=p.tel;
+    const epTel=document.getElementById('ep-tel');
+    if(epTel) epTel.value=p.tel;
+  }
   if(p.end) document.getElementById('cfg-end').textContent=p.end;
   // Dados bancários
   if(p.banco) document.getElementById('cfg-banco').textContent=p.banco;
