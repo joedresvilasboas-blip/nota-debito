@@ -796,13 +796,35 @@ async function iniciarDrive(){
     setSyncStatus('✓ conectado');
   }catch(e){
     console.error('Drive init error:', e);
-    setSyncStatus('⚠️ erro Drive', true);
-    // Fallback localStorage
+    // Tenta de novo uma vez após 2 segundos
     try{
-      const ls = localStorage.getItem('nd_main');
-      if(ls){ S = {...S,...JSON.parse(ls)}; }
-    }catch(e2){}
-    mostrarApp();
+      await new Promise(r=>setTimeout(r,2000));
+      rootFolderId = await buscarOuCriarPasta(ROOT_FOLDER_NAME, null);
+      globalFileId = await buscarOuCriarArquivo('_global.json', rootFolderId, {
+        eventos:[], notaCounter:0, prestador:{}, tomadores:{}
+      });
+      const global2 = await lerArquivo(globalFileId);
+      if(global2.prestador?.nome){
+        S.eventos=global2.eventos||[];
+        S.notaCounter=global2.notaCounter||0;
+        S.prestador=global2.prestador||{};
+        S.tomadores=global2.tomadores||{};
+        if(global2.eventoAtivo) S.eventoAtivo=global2.eventoAtivo;
+        await carregarTodasDespesas();
+      } else if(!global2.prestador?.nome){
+        document.getElementById('login-screen').style.display='none';
+        document.getElementById('setup-screen').style.display='block';
+        return;
+      }
+      mostrarApp();
+      setSyncStatus('✓ conectado');
+    }catch(e2){
+      console.error('Drive retry failed:', e2);
+      setSyncStatus('⚠️ sem conexão', true);
+      const ls=localStorage.getItem('nd_main');
+      if(ls) try{S={...S,...JSON.parse(ls)};}catch(e3){}
+      mostrarApp();
+    }
   }
 }
 
@@ -1072,12 +1094,13 @@ function autoFim(){
 }
 
 function calcularDiaAuto(){
-  const dataSel=document.getElementById('data').value;
+  const dataSel=document.getElementById('data')?.value;
   const el=document.getElementById('dia-calculado');
   const txt=document.getElementById('dia-calculado-texto');
-  if(!dataSel||!S.eventoAtivo){el.style.display='none';return;}
+  if(!el||!txt){atualizarDesc();return;}
+  if(!dataSel||!S.eventoAtivo){el.style.display='none';atualizarDesc();return;}
   const ev=S.eventos.find(e=>e.id===S.eventoAtivo);
-  if(!ev||!ev.inicio){el.style.display='none';return;}
+  if(!ev||!ev.inicio){el.style.display='none';atualizarDesc();return;}
   const diff=Math.round((new Date(dataSel)-new Date(ev.inicio))/(1000*60*60*24));
   const dia=diff+1;
   if(dia<1){
