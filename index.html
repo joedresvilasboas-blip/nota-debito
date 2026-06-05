@@ -144,7 +144,10 @@ textarea{resize:vertical;min-height:68px}
   <p style="font-size:14px;color:var(--text2);text-align:center;margin-bottom:32px;line-height:1.5">
     Faça login com sua conta Google para<br>sincronizar seus dados em qualquer dispositivo
   </p>
-  <div id="google-btn-wrap" style="margin-bottom:16px"></div>
+  <div id="google-btn-wrap" style="margin-bottom:12px"></div>
+  <button onclick="loginManual()" style="background:none;border:1px solid var(--border2);border-radius:8px;padding:10px 20px;font-size:14px;cursor:pointer;color:var(--text);font-family:inherit;margin-bottom:16px;width:100%;max-width:300px">
+    🔑 Entrar com Google (alternativo)
+  </button>
   <p style="font-size:12px;color:var(--text2);text-align:center;line-height:1.5">
     Seus dados ficam salvos no seu<br>próprio Google Drive 🔒
   </p>
@@ -582,201 +585,350 @@ let gerarEventoId='';
 // ─── AUTH + STORAGE (Google Drive) ───────────────────────────
 const CLIENT_ID = '269633658350-e3arrtm0jcmihufe5rrcbaa3vhisgg60.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-const DRIVE_FILENAME = 'nota_debito_dados.json';
+const ROOT_FOLDER_NAME = 'Nota de Débito';
 
 let accessToken = null;
-let driveFileId = null;
 let currentUser = null;
+let rootFolderId = null;          // 📁 Nota de Débito/
+let eventoFolderCache = {};       // eventoId → folderId
+let globalFileId = null;          // dados globais (eventos, counter, etc)
 
-// ── Google Identity Services ──────────────────────────────────
+// ── Google Auth ───────────────────────────────────────────────
 function initGoogle(){
-  if(typeof google === 'undefined'){
-    setTimeout(initGoogle, 500);
-    return;
-  }
-  // Mostra tela de login
+  if(typeof google === 'undefined'){ setTimeout(initGoogle,500); return; }
   document.getElementById('login-screen').style.display='flex';
-
   google.accounts.id.initialize({
     client_id: CLIENT_ID,
     callback: onGoogleLogin,
     auto_select: true,
     cancel_on_tap_outside: false
   });
-
   google.accounts.id.renderButton(
     document.getElementById('google-btn-wrap'),
-    {theme:'outline', size:'large', text:'signin_with_google', locale:'pt-BR'}
+    {theme:'outline',size:'large',text:'signin_with_google',locale:'pt-BR'}
   );
-
-  // Tenta login silencioso primeiro
   google.accounts.id.prompt();
 }
 
 function onGoogleLogin(response){
-  // Decodifica o JWT para pegar info do usuário
-  const payload = JSON.parse(atob(response.credential.split('.')[1]));
-  currentUser = {name: payload.name, email: payload.email, picture: payload.picture};
-
-  // Pega access token para o Drive
-  const tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPES,
-    callback: async (tokenResp) => {
-      if(tokenResp.error) { console.error(tokenResp); return; }
-      accessToken = tokenResp.access_token;
-      await carregarDoDrive();
-    }
-  });
-  tokenClient.requestAccessToken({prompt: ''});
+  try{
+    const p = JSON.parse(atob(response.credential.split('.')[1]));
+    currentUser = {name:p.name, email:p.email};
+  }catch(e){ currentUser = {name:'Usuário',email:''}; }
+  pedirTokenDrive({prompt:'none'});
 }
 
-// ── Drive operations ──────────────────────────────────────────
-async function driveReq(method, url, body){
-  const headers = {'Authorization': 'Bearer ' + accessToken};
-  if(body && typeof body === 'string') headers['Content-Type'] = 'application/json';
-  const res = await fetch(url, {method, headers, body});
-  if(!res.ok) throw new Error('Drive error ' + res.status);
+function loginManual(){
+  pedirTokenDrive({prompt:'consent'});
+}
+
+function pedirTokenDrive(opts){
+  const tc = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if(resp.error){ console.error(resp); return; }
+      accessToken = resp.access_token;
+      if(!currentUser || !currentUser.email){
+        try{
+          const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
+            {headers:{'Authorization':'Bearer '+accessToken}});
+          const u = await r.json();
+          currentUser = {name:u.name, email:u.email};
+        }catch(e){}
+      }
+      await iniciarDrive();
+    }
+  });
+  tc.requestAccessToken(opts);
+}
+
+// ── Drive helpers ─────────────────────────────────────────────
+async function driveReq(method, url, body, isUpload){
+  const headers = {'Authorization':'Bearer '+accessToken};
+  if(body && !isUpload) headers['Content-Type']='application/json';
+  const res = await fetch(url, {
+    method,
+    headers,
+    body: body ? (isUpload ? body : JSON.stringify(body)) : undefined
+  });
+  if(!res.ok) throw new Error('Drive '+res.status+' '+await res.text());
   const ct = res.headers.get('content-type')||'';
   return ct.includes('json') ? res.json() : res.text();
 }
 
-async function buscarOuCriarArquivo(){
-  if(driveFileId) return driveFileId;
-  const q = encodeURIComponent(`name='${DRIVE_FILENAME}' and trashed=false`);
-  const r = await driveReq('GET', `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`);
-  if(r.files && r.files.length > 0){
-    driveFileId = r.files[0].id;
-    return driveFileId;
-  }
-  // Criar arquivo novo
-  const meta = new Blob([JSON.stringify({name: DRIVE_FILENAME, mimeType: 'application/json'})], {type:'application/json'});
-  const dados = new Blob([JSON.stringify(getEstadoInicial())], {type:'application/json'});
+async function buscarOuCriarPasta(nome, parentId){
+  const q = `name='${nome}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
+    + (parentId ? ` and '${parentId}' in parents` : '');
+  const r = await driveReq('GET',
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`);
+  if(r.files && r.files.length > 0) return r.files[0].id;
+  // Criar pasta
+  const body = {name:nome, mimeType:'application/vnd.google-apps.folder'};
+  if(parentId) body.parents = [parentId];
+  const f = await driveReq('POST','https://www.googleapis.com/drive/v3/files?fields=id', body);
+  return f.id;
+}
+
+async function buscarOuCriarArquivo(nome, parentId, conteudoInicial){
+  const q = `name='${nome}' and trashed=false and '${parentId}' in parents`;
+  const r = await driveReq('GET',
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`);
+  if(r.files && r.files.length > 0) return r.files[0].id;
+  // Criar arquivo
+  const meta = new Blob([JSON.stringify({name:nome, mimeType:'application/json', parents:[parentId]})],
+    {type:'application/json'});
+  const dados = new Blob([JSON.stringify(conteudoInicial)], {type:'application/json'});
   const form = new FormData();
   form.append('metadata', meta);
   form.append('file', dados);
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-    method:'POST', headers:{'Authorization':'Bearer '+accessToken}, body:form
-  });
+  const res = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+    {method:'POST', headers:{'Authorization':'Bearer '+accessToken}, body:form});
   const j = await res.json();
-  driveFileId = j.id;
-  return driveFileId;
+  return j.id;
 }
 
-function getEstadoInicial(){
-  return {eventos:[], despesas:[], notaCounter:0, eventoAtivo:'', prestador:{}, tomadores:{}};
+async function lerArquivo(fileId){
+  const txt = await driveReq('GET',
+    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
+  return typeof txt === 'string' ? JSON.parse(txt) : txt;
 }
 
-async function carregarDoDrive(){
-  setSyncStatus('⏳ carregando...');
+async function salvarArquivo(fileId, dados){
+  await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+    method:'PATCH',
+    headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},
+    body: JSON.stringify(dados)
+  });
+}
+
+async function salvarImagemDrive(nome, base64, parentId){
+  // Verifica se já existe
+  const q = `name='${nome}' and trashed=false and '${parentId}' in parents`;
+  const r = await driveReq('GET',
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,webViewLink)`);
+  if(r.files && r.files.length > 0) return r.files[0];
+  // Upload da imagem
+  const mimeType = base64.split(';')[0].split(':')[1] || 'image/jpeg';
+  const byteStr = atob(base64.split(',')[1]);
+  const arr = new Uint8Array(byteStr.length);
+  for(let i=0;i<byteStr.length;i++) arr[i]=byteStr.charCodeAt(i);
+  const blob = new Blob([arr], {type:mimeType});
+  const meta = new Blob([JSON.stringify({name:nome, parents:[parentId]})], {type:'application/json'});
+  const form = new FormData();
+  form.append('metadata', meta);
+  form.append('file', blob);
+  const res = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',
+    {method:'POST', headers:{'Authorization':'Bearer '+accessToken}, body:form});
+  return await res.json();
+}
+
+// ── Iniciar Drive ─────────────────────────────────────────────
+async function iniciarDrive(){
+  setSyncStatus('⏳ conectando...');
   try{
-    const fid = await buscarOuCriarArquivo();
-    const data = await driveReq('GET', `https://www.googleapis.com/drive/v3/files/${fid}?alt=media`);
-    const obj = typeof data === 'string' ? JSON.parse(data) : data;
+    // 1. Pasta raiz
+    rootFolderId = await buscarOuCriarPasta(ROOT_FOLDER_NAME, null);
 
-    // Primeiro acesso — sem dados ainda
-    if(!obj.prestador || !obj.prestador.nome){
+    // 2. Arquivo global (eventos, counter, prestador, tomadores)
+    globalFileId = await buscarOuCriarArquivo('_global.json', rootFolderId, {
+      eventos:[], notaCounter:0, prestador:{}, tomadores:{}
+    });
+
+    // 3. Carregar dados globais
+    const global = await lerArquivo(globalFileId);
+
+    // Primeiro acesso sem dados
+    if(!global.prestador || !global.prestador.nome){
       document.getElementById('login-screen').style.display='none';
       document.getElementById('setup-screen').style.display='block';
-      // Pré-preenche email do Google
       if(currentUser) document.getElementById('setup-email').value = currentUser.email||'';
       return;
     }
 
-    S = {...getEstadoInicial(), ...obj};
+    S.eventos = global.eventos || [];
+    S.notaCounter = global.notaCounter || 0;
+    S.prestador = global.prestador || {};
+    S.tomadores = global.tomadores || {};
+    if(global.eventoAtivo) S.eventoAtivo = global.eventoAtivo;
+
+    // 4. Carregar despesas de cada evento (pasta própria)
+    await carregarTodasDespesas();
+
     mostrarApp();
-  } catch(e){
-    console.error('Drive load error:', e);
-    setSyncStatus('⚠️ erro ao carregar', true);
+    setSyncStatus('✓ conectado');
+  }catch(e){
+    console.error('Drive init error:', e);
+    setSyncStatus('⚠️ erro Drive', true);
     // Fallback localStorage
-    const ls = localStorage.getItem('nd_main');
-    if(ls) S = {...getEstadoInicial(), ...JSON.parse(ls)};
+    try{
+      const ls = localStorage.getItem('nd_main');
+      if(ls){ S = {...S,...JSON.parse(ls)}; }
+    }catch(e2){}
     mostrarApp();
   }
 }
 
-async function salvar(){
-  // Salva no localStorage como backup imediato
-  try{ localStorage.setItem('nd_main', JSON.stringify(S)); }catch(e){}
+async function getEventoFolderId(eventoId){
+  if(eventoFolderCache[eventoId]) return eventoFolderCache[eventoId];
+  const ev = S.eventos.find(e=>e.id===eventoId);
+  if(!ev) return null;
+  const nomePasta = (ev.nome + (ev.cidade?' — '+ev.cidade:'')).replace(/[/\\?%*:|"<>]/g,'');
+  const fid = await buscarOuCriarPasta(nomePasta, rootFolderId);
+  eventoFolderCache[eventoId] = fid;
+  return fid;
+}
 
-  // Salva no Drive em background
-  if(!accessToken){ atualizarStorageInfo(); return; }
+async function carregarTodasDespesas(){
+  S.despesas = [];
+  for(const ev of S.eventos){
+    try{
+      const fid = await getEventoFolderId(ev.id);
+      if(!fid) continue;
+      // Buscar despesas.json nesta pasta
+      const q = `name='despesas.json' and trashed=false and '${fid}' in parents`;
+      const r = await driveReq('GET',
+        `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`);
+      if(r.files && r.files.length > 0){
+        const desp = await lerArquivo(r.files[0].id);
+        if(Array.isArray(desp)) S.despesas.push(...desp);
+      }
+    }catch(e){ console.warn('Erro ao carregar despesas do evento:', ev.id, e); }
+  }
+}
+
+// ── Salvar ────────────────────────────────────────────────────
+async function salvar(){
+  // Backup local imediato
+  try{ localStorage.setItem('nd_main', JSON.stringify(S)); }catch(e){}
+  if(!accessToken || !rootFolderId){ atualizarStorageInfo(); return; }
+
   setSyncStatus('💾 salvando...');
   try{
-    const fid = await buscarOuCriarArquivo();
-    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fid}?uploadType=media`, {
-      method:'PATCH',
-      headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},
-      body: JSON.stringify(S)
+    // 1. Salvar dados globais
+    await salvarArquivo(globalFileId, {
+      eventos: S.eventos,
+      notaCounter: S.notaCounter,
+      prestador: S.prestador,
+      tomadores: S.tomadores,
+      eventoAtivo: S.eventoAtivo
     });
+
+    // 2. Salvar despesas por evento (pasta de cada evento)
+    const eventoIds = [...new Set(S.despesas.map(d=>d.eventoId))];
+    for(const evId of eventoIds){
+      try{
+        const fid = await getEventoFolderId(evId);
+        if(!fid) continue;
+        const despEvento = S.despesas.filter(d=>d.eventoId===evId);
+        // Salvar imagens no Drive e substituir data por link
+        const despParaSalvar = await processarComprovantes(despEvento, fid);
+        // Buscar ou criar despesas.json
+        const despFileId = await buscarOuCriarArquivo('despesas.json', fid, []);
+        await salvarArquivo(despFileId, despParaSalvar);
+      }catch(e){ console.warn('Erro ao salvar evento:', evId, e); }
+    }
+
     const agora = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    setSyncStatus('✓ salvo às ' + agora);
-  } catch(e){
-    console.error('Drive save error:', e);
+    setSyncStatus('✓ salvo às '+agora);
+  }catch(e){
+    console.error('Salvar error:', e);
     setSyncStatus('⚠️ salvo localmente', true);
   }
   atualizarStorageInfo();
 }
 
-function carregar(){
-  // Será feito via Drive — este método é chamado no init mas o Drive cuida de tudo
-  return false;
+async function processarComprovantes(despesas, eventoFolderId){
+  const resultado = [];
+  for(const d of despesas){
+    const dCopy = {...d, attachs:[]};
+    for(const a of (d.attachs||[])){
+      if(a.data && a.data.startsWith('data:')){
+        // Upload da imagem para o Drive
+        try{
+          const f = await salvarImagemDrive(a.name, a.data, eventoFolderId);
+          dCopy.attachs.push({name:a.name, type:a.type, driveId:f.id, driveLink:f.webViewLink, data:null});
+        }catch(e){
+          dCopy.attachs.push({name:a.name, type:a.type, data:a.data}); // mantém local se falhar
+        }
+      } else {
+        dCopy.attachs.push(a); // já está no Drive ou sem imagem
+      }
+    }
+    resultado.push(dCopy);
+  }
+  return resultado;
 }
 
+// Criar pasta do evento ao salvar novo evento
+async function criarPastaEvento(ev){
+  if(!rootFolderId) return;
+  try{
+    const fid = await getEventoFolderId(ev.id);
+    console.log('Pasta criada para evento:', ev.nome, fid);
+  }catch(e){ console.warn('Erro ao criar pasta evento:', e); }
+}
+
+function carregar(){ return false; } // Drive cuida de tudo
+
 function setSyncStatus(msg, isErr){
-  const el = document.getElementById('sync-status');
-  if(!el) return;
-  el.textContent = msg;
-  el.style.color = isErr ? 'var(--red)' : 'var(--text2)';
+  const el=document.getElementById('sync-status');
+  if(!el)return;
+  el.textContent=msg;
+  el.style.color=isErr?'var(--red)':'var(--text2)';
 }
 
 function mostrarApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('main-app').style.display='flex';
-  // Atualizar header com nome do usuário
-  if(currentUser){
-    const hdr = document.querySelector('.hdr p');
-    if(hdr && S.prestador && S.prestador.nome){
-      hdr.textContent = S.prestador.nome + ' · ' + (S.prestador.cnpj||'');
-    }
+  const hdrUser=document.getElementById('hdr-user');
+  if(hdrUser && S.prestador && S.prestador.nome){
+    hdrUser.textContent=S.prestador.nome+(S.prestador.cnpj?' · '+S.prestador.cnpj:'');
   }
   initApp();
 }
 
 function finalizarSetup(){
-  const nome = document.getElementById('setup-nome').value.trim();
-  const cnpj = document.getElementById('setup-cnpj').value.trim();
-  const email = document.getElementById('setup-email').value.trim();
-  const msg = document.getElementById('setup-msg');
-  if(!nome){ msg.textContent='⚠️ Informe o nome.'; return; }
-  if(!cnpj){ msg.textContent='⚠️ Informe o CPF/CNPJ.'; return; }
-  if(!email){ msg.textContent='⚠️ Informe o e-mail.'; return; }
-
-  S.prestador = {
-    nome, cnpj, email,
-    tel: document.getElementById('setup-tel').value.trim(),
-    end: document.getElementById('setup-end').value.trim(),
-    banco: document.getElementById('setup-banco').value.trim()||'',
-    agencia: document.getElementById('setup-agencia').value.trim()||'',
-    conta: document.getElementById('setup-conta').value.trim()||''
+  const nome=document.getElementById('setup-nome').value.trim();
+  const cnpj=document.getElementById('setup-cnpj').value.trim();
+  const email=document.getElementById('setup-email').value.trim();
+  const msg=document.getElementById('setup-msg');
+  if(!nome){msg.textContent='⚠️ Informe o nome.';return}
+  if(!cnpj){msg.textContent='⚠️ Informe o CPF/CNPJ.';return}
+  if(!email){msg.textContent='⚠️ Informe o e-mail.';return}
+  S.prestador={
+    nome,cnpj,email,
+    tel:document.getElementById('setup-tel').value.trim(),
+    end:document.getElementById('setup-end').value.trim(),
+    banco:document.getElementById('setup-banco').value.trim(),
+    agencia:document.getElementById('setup-agencia').value.trim(),
+    conta:document.getElementById('setup-conta').value.trim()
   };
-  S.tomadores = {};
-
   salvar();
   mostrarApp();
 }
 
 function atualizarStorageInfo(){
-  const el = document.getElementById('storage-info');
-  if(!el) return;
-  const json = JSON.stringify(S);
-  const bytes = new TextEncoder().encode(json).length;
-  const mb = (bytes/1024/1024).toFixed(1);
-  const kb = (bytes/1024).toFixed(0);
-  const disp = bytes>1024*1024 ? mb+'MB' : kb+'KB';
-  const status = accessToken ? '☁️ Google Drive' : '💾 Local';
-  el.innerHTML = `${status} · ~<b>${disp}</b>`;
+  const el=document.getElementById('storage-info');
+  if(!el)return;
+  const json=JSON.stringify(S);
+  const bytes=new TextEncoder().encode(json).length;
+  const kb=(bytes/1024).toFixed(0);
+  const status=accessToken?'☁️ Google Drive':'💾 Local';
+  el.innerHTML=`${status} · ~<b>${kb}KB</b>`;
+}
+
+function fazerLogout(){
+  if(!confirm('Sair da conta?'))return;
+  accessToken=null;currentUser=null;rootFolderId=null;
+  eventoFolderCache={};globalFileId=null;
+  S={eventos:[],despesas:[],notaCounter:0,eventoAtivo:'',prestador:{},tomadores:{}};
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  google.accounts.id.prompt();
 }
 
 // ─── PWA BANNER ───────────────────────────────────────────────
@@ -910,6 +1062,8 @@ function salvarEvento(){
     S.eventos.push({id:novoId,nome,tomador,cidade,inicio,fim});
     if(!S.eventoAtivo)S.eventoAtivo=novoId;
   }
+  const novoEv=S.eventos[S.eventos.length-1];
+  if(novoEv&&!editId) criarPastaEvento(novoEv);
   salvar();closeModal('modal-evento');limparModalEvento();renderEventos();
 }
 
