@@ -134,9 +134,54 @@ textarea{resize:vertical;min-height:68px}
 
 #add-msg{font-size:13px;margin-top:10px;text-align:center;min-height:18px}
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-<div class="app">
+<!-- TELA DE LOGIN -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:999;flex-direction:column;align-items:center;justify-content:center;padding:32px">
+  <div style="font-size:48px;margin-bottom:16px">📄</div>
+  <h1 style="font-size:22px;font-weight:700;margin-bottom:8px;text-align:center">Nota de Débito</h1>
+  <p style="font-size:14px;color:var(--text2);text-align:center;margin-bottom:32px;line-height:1.5">
+    Faça login com sua conta Google para<br>sincronizar seus dados em qualquer dispositivo
+  </p>
+  <div id="google-btn-wrap" style="margin-bottom:16px"></div>
+  <p style="font-size:12px;color:var(--text2);text-align:center;line-height:1.5">
+    Seus dados ficam salvos no seu<br>próprio Google Drive 🔒
+  </p>
+</div>
+
+<!-- TELA DE SETUP (primeiro acesso) -->
+<div id="setup-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:998;overflow-y:auto;padding:32px 20px">
+  <div style="max-width:400px;margin:0 auto">
+    <div style="font-size:40px;margin-bottom:12px;text-align:center">👋</div>
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:6px;text-align:center">Bem-vindo!</h2>
+    <p style="font-size:14px;color:var(--text2);text-align:center;margin-bottom:28px">Configure seus dados para começar</p>
+
+    <label>Nome / Razão Social *</label>
+    <input type="text" id="setup-nome" placeholder="Ex: João Silva" />
+    <label>CPF/CNPJ *</label>
+    <input type="text" id="setup-cnpj" placeholder="Ex: 000.000.000-00" />
+    <label>E-mail *</label>
+    <input type="text" id="setup-email" />
+    <label>Telefone</label>
+    <input type="text" id="setup-tel" placeholder="Ex: 11 99999-9999" />
+    <label>Endereço</label>
+    <input type="text" id="setup-end" placeholder="Ex: Rua das Flores, 123 – São Paulo SP" />
+
+    <div class="slabel" style="margin-top:20px">Dados bancários</div>
+    <label>Banco</label>
+    <input type="text" id="setup-banco" placeholder="Ex: BTG Pactual S.A. (208)" />
+    <label>Agência</label>
+    <input type="text" id="setup-agencia" placeholder="Ex: 0050" />
+    <label>Conta Corrente (PJ)</label>
+    <input type="text" id="setup-conta" placeholder="Ex: 848596-8" />
+
+    <div id="setup-msg" style="font-size:13px;color:var(--red);margin:10px 0;min-height:16px"></div>
+    <button class="btn btn-primary mt8" onclick="finalizarSetup()">💾 Salvar e começar</button>
+  </div>
+</div>
+
+<div class="app" id="main-app" style="display:none">
 
   <!-- Banner instalar PWA -->
   <div class="install-banner" id="install-banner" style="display:none">
@@ -149,8 +194,16 @@ textarea{resize:vertical;min-height:68px}
   </div>
 
   <div class="hdr">
-    <h1>📄 Nota de Débito</h1>
-    <p>Joedres Ferreira Vilas Boas · CNPJ 52.150.205/0001-57</p>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <h1>📄 Nota de Débito</h1>
+        <p id="hdr-user">Carregando...</p>
+      </div>
+      <div style="text-align:right">
+        <div id="sync-status" style="font-size:11px;color:var(--text2)"></div>
+        <button onclick="fazerLogout()" style="background:none;border:none;font-size:11px;color:var(--text2);cursor:pointer;margin-top:2px">Sair</button>
+      </div>
+    </div>
   </div>
 
   <nav class="nav">
@@ -526,105 +579,204 @@ let attachs=[];
 let qrStream=null,qrInterval=null;
 let gerarEventoId='';
 
-// ─── STORAGE ─────────────────────────────────────────────────
-// localStorage principal — instantâneo, nunca trava
-// IndexedDB usado só para comprovantes grandes em background
+// ─── AUTH + STORAGE (Google Drive) ───────────────────────────
+const CLIENT_ID = '269633658350-e3arrtm0jcmihufe5rrcbaa3vhisgg60.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILENAME = 'nota_debito_dados.json';
 
-function salvar(){
+let accessToken = null;
+let driveFileId = null;
+let currentUser = null;
+
+// ── Google Identity Services ──────────────────────────────────
+function initGoogle(){
+  if(typeof google === 'undefined'){
+    setTimeout(initGoogle, 500);
+    return;
+  }
+  // Mostra tela de login
+  document.getElementById('login-screen').style.display='flex';
+
+  google.accounts.id.initialize({
+    client_id: CLIENT_ID,
+    callback: onGoogleLogin,
+    auto_select: true,
+    cancel_on_tap_outside: false
+  });
+
+  google.accounts.id.renderButton(
+    document.getElementById('google-btn-wrap'),
+    {theme:'outline', size:'large', text:'signin_with_google', locale:'pt-BR'}
+  );
+
+  // Tenta login silencioso primeiro
+  google.accounts.id.prompt();
+}
+
+function onGoogleLogin(response){
+  // Decodifica o JWT para pegar info do usuário
+  const payload = JSON.parse(atob(response.credential.split('.')[1]));
+  currentUser = {name: payload.name, email: payload.email, picture: payload.picture};
+
+  // Pega access token para o Drive
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (tokenResp) => {
+      if(tokenResp.error) { console.error(tokenResp); return; }
+      accessToken = tokenResp.access_token;
+      await carregarDoDrive();
+    }
+  });
+  tokenClient.requestAccessToken({prompt: ''});
+}
+
+// ── Drive operations ──────────────────────────────────────────
+async function driveReq(method, url, body){
+  const headers = {'Authorization': 'Bearer ' + accessToken};
+  if(body && typeof body === 'string') headers['Content-Type'] = 'application/json';
+  const res = await fetch(url, {method, headers, body});
+  if(!res.ok) throw new Error('Drive error ' + res.status);
+  const ct = res.headers.get('content-type')||'';
+  return ct.includes('json') ? res.json() : res.text();
+}
+
+async function buscarOuCriarArquivo(){
+  if(driveFileId) return driveFileId;
+  const q = encodeURIComponent(`name='${DRIVE_FILENAME}' and trashed=false`);
+  const r = await driveReq('GET', `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`);
+  if(r.files && r.files.length > 0){
+    driveFileId = r.files[0].id;
+    return driveFileId;
+  }
+  // Criar arquivo novo
+  const meta = new Blob([JSON.stringify({name: DRIVE_FILENAME, mimeType: 'application/json'})], {type:'application/json'});
+  const dados = new Blob([JSON.stringify(getEstadoInicial())], {type:'application/json'});
+  const form = new FormData();
+  form.append('metadata', meta);
+  form.append('file', dados);
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method:'POST', headers:{'Authorization':'Bearer '+accessToken}, body:form
+  });
+  const j = await res.json();
+  driveFileId = j.id;
+  return driveFileId;
+}
+
+function getEstadoInicial(){
+  return {eventos:[], despesas:[], notaCounter:0, eventoAtivo:'', prestador:{}, tomadores:{}};
+}
+
+async function carregarDoDrive(){
+  setSyncStatus('⏳ carregando...');
   try{
-    // Salva dados sem imagens no localStorage (rápido)
-    const semImg={...S,despesas:S.despesas.map(d=>({
-      ...d,attachs:(d.attachs||[]).map(a=>({name:a.name,type:a.type,data:null}))
-    }))};
-    localStorage.setItem('nd_main',JSON.stringify(semImg));
-  }catch(e){console.warn('localStorage cheio:',e)}
-  // Salva com imagens no IndexedDB em background (não bloqueia)
-  salvarIDB().catch(e=>console.warn('IDB background save falhou:',e));
+    const fid = await buscarOuCriarArquivo();
+    const data = await driveReq('GET', `https://www.googleapis.com/drive/v3/files/${fid}?alt=media`);
+    const obj = typeof data === 'string' ? JSON.parse(data) : data;
+
+    // Primeiro acesso — sem dados ainda
+    if(!obj.prestador || !obj.prestador.nome){
+      document.getElementById('login-screen').style.display='none';
+      document.getElementById('setup-screen').style.display='block';
+      // Pré-preenche email do Google
+      if(currentUser) document.getElementById('setup-email').value = currentUser.email||'';
+      return;
+    }
+
+    S = {...getEstadoInicial(), ...obj};
+    mostrarApp();
+  } catch(e){
+    console.error('Drive load error:', e);
+    setSyncStatus('⚠️ erro ao carregar', true);
+    // Fallback localStorage
+    const ls = localStorage.getItem('nd_main');
+    if(ls) S = {...getEstadoInicial(), ...JSON.parse(ls)};
+    mostrarApp();
+  }
+}
+
+async function salvar(){
+  // Salva no localStorage como backup imediato
+  try{ localStorage.setItem('nd_main', JSON.stringify(S)); }catch(e){}
+
+  // Salva no Drive em background
+  if(!accessToken){ atualizarStorageInfo(); return; }
+  setSyncStatus('💾 salvando...');
+  try{
+    const fid = await buscarOuCriarArquivo();
+    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fid}?uploadType=media`, {
+      method:'PATCH',
+      headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},
+      body: JSON.stringify(S)
+    });
+    const agora = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    setSyncStatus('✓ salvo às ' + agora);
+  } catch(e){
+    console.error('Drive save error:', e);
+    setSyncStatus('⚠️ salvo localmente', true);
+  }
   atualizarStorageInfo();
 }
 
 function carregar(){
-  // Carrega do localStorage imediatamente (síncrono)
-  try{
-    const raw=localStorage.getItem('nd_main');
-    if(raw){
-      const obj=JSON.parse(raw);
-      S={...S,...obj};
-      // Tenta enriquecer com imagens do IDB em background
-      carregarIDB().catch(e=>console.warn('IDB load falhou:',e));
-      return true;
-    }
-  }catch(e){console.warn('Erro localStorage:',e)}
+  // Será feito via Drive — este método é chamado no init mas o Drive cuida de tudo
   return false;
 }
 
-// IndexedDB — só para imagens, em background
-const DB_NAME='nota_debito_db';
-const DB_VERSION=1;
-const STORE_NAME='estado';
-let db=null;
-
-function abrirIDB(){
-  return new Promise((resolve,reject)=>{
-    if(db){resolve(db);return}
-    const timeout=setTimeout(()=>reject(new Error('IDB timeout')),3000);
-    try{
-      const req=indexedDB.open(DB_NAME,DB_VERSION);
-      req.onupgradeneeded=e=>{
-        const d=e.target.result;
-        if(!d.objectStoreNames.contains(STORE_NAME))
-          d.createObjectStore(STORE_NAME,{keyPath:'id'});
-      };
-      req.onsuccess=e=>{clearTimeout(timeout);db=e.target.result;resolve(db)};
-      req.onerror=e=>{clearTimeout(timeout);reject(e)};
-      req.onblocked=()=>{clearTimeout(timeout);reject(new Error('IDB bloqueado'))};
-    }catch(e){clearTimeout(timeout);reject(e)}
-  });
+function setSyncStatus(msg, isErr){
+  const el = document.getElementById('sync-status');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = isErr ? 'var(--red)' : 'var(--text2)';
 }
 
-async function salvarIDB(){
-  const d=await abrirIDB();
-  const tx=d.transaction(STORE_NAME,'readwrite');
-  tx.objectStore(STORE_NAME).put({id:'estado',...S});
-  await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej});
-}
-
-async function carregarIDB(){
-  const d=await abrirIDB();
-  const tx=d.transaction(STORE_NAME,'readonly');
-  const req=tx.objectStore(STORE_NAME).get('estado');
-  const resultado=await new Promise((res)=>{
-    req.onsuccess=()=>res(req.result);
-    req.onerror=()=>res(null);
-  });
-  if(resultado){
-    // Mescla imagens do IDB com dados do localStorage
-    const{id,...estado}=resultado;
-    if(estado.despesas){
-      S.despesas=S.despesas.map(d=>{
-        const idbD=estado.despesas.find(x=>x.id===d.id);
-        if(idbD&&idbD.attachs&&idbD.attachs.some(a=>a.data)){
-          return{...d,attachs:idbD.attachs};
-        }
-        return d;
-      });
-      renderDespesas();
+function mostrarApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('main-app').style.display='flex';
+  // Atualizar header com nome do usuário
+  if(currentUser){
+    const hdr = document.querySelector('.hdr p');
+    if(hdr && S.prestador && S.prestador.nome){
+      hdr.textContent = S.prestador.nome + ' · ' + (S.prestador.cnpj||'');
     }
   }
+  initApp();
+}
+
+function finalizarSetup(){
+  const nome = document.getElementById('setup-nome').value.trim();
+  const cnpj = document.getElementById('setup-cnpj').value.trim();
+  const email = document.getElementById('setup-email').value.trim();
+  const msg = document.getElementById('setup-msg');
+  if(!nome){ msg.textContent='⚠️ Informe o nome.'; return; }
+  if(!cnpj){ msg.textContent='⚠️ Informe o CPF/CNPJ.'; return; }
+  if(!email){ msg.textContent='⚠️ Informe o e-mail.'; return; }
+
+  S.prestador = {
+    nome, cnpj, email,
+    tel: document.getElementById('setup-tel').value.trim(),
+    end: document.getElementById('setup-end').value.trim(),
+    banco: document.getElementById('setup-banco').value.trim()||'',
+    agencia: document.getElementById('setup-agencia').value.trim()||'',
+    conta: document.getElementById('setup-conta').value.trim()||''
+  };
+  S.tomadores = {};
+
+  salvar();
+  mostrarApp();
 }
 
 function atualizarStorageInfo(){
-  const el=document.getElementById('storage-info');
-  if(!el)return;
-  try{
-    const json=JSON.stringify(S);
-    const bytes=new TextEncoder().encode(json).length;
-    const mb=(bytes/1024/1024).toFixed(1);
-    const kb=(bytes/1024).toFixed(0);
-    const disp=bytes>1024*1024?mb+'MB':kb+'KB';
-    el.innerHTML=`Dados salvos: ~<b>${disp}</b><br>
-      <span style="font-size:12px;color:var(--text2)">Imagens salvas no IndexedDB em background</span>`;
-  }catch(e){}
+  const el = document.getElementById('storage-info');
+  if(!el) return;
+  const json = JSON.stringify(S);
+  const bytes = new TextEncoder().encode(json).length;
+  const mb = (bytes/1024/1024).toFixed(1);
+  const kb = (bytes/1024).toFixed(0);
+  const disp = bytes>1024*1024 ? mb+'MB' : kb+'KB';
+  const status = accessToken ? '☁️ Google Drive' : '💾 Local';
+  el.innerHTML = `${status} · ~<b>${disp}</b>`;
 }
 
 // ─── PWA BANNER ───────────────────────────────────────────────
@@ -1390,6 +1542,7 @@ ${comprovantesHTML}
   style="display:block;margin:24px auto 0;padding:12px 32px;font-size:15px;cursor:pointer;background:#000;color:#fff;border:none;border-radius:8px">
   \uD83D\uDDA8\uFE0F Imprimir / Salvar como PDF
 </button>
+</div><!-- /main-app -->
 </body></html>`;
 
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
@@ -1536,6 +1689,9 @@ function salvarPrestador(){
 function carregarPrestador(){
   if(!S.prestador)return;
   const p=S.prestador;
+  // Atualizar header
+  const hdrUser = document.getElementById('hdr-user');
+  if(hdrUser && p.nome) hdrUser.textContent = p.nome + (p.cnpj?' · '+p.cnpj:'');
   if(p.nome) document.getElementById('cfg-nome').textContent=p.nome;
   if(p.cnpj) document.getElementById('cfg-cnpj').textContent=p.cnpj;
   if(p.email) document.getElementById('cfg-email').textContent=p.email;
@@ -1754,8 +1910,18 @@ function salvarEdicao(){
 
 // ─── INIT ─────────────────────────────────────────────────────
 // Init — síncrono, nunca trava
+function fazerLogout(){
+  if(!confirm('Sair da conta?')) return;
+  accessToken = null;
+  currentUser = null;
+  driveFileId = null;
+  S = {eventos:[],despesas:[],notaCounter:0,eventoAtivo:'',prestador:{},tomadores:{}};
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  google.accounts.id.prompt();
+}
+
 function initApp(){
-  carregar(); // síncrono, instantâneo
   carregarPrestador();
   renderEventos();
   renderEventoAtivo();
@@ -1769,7 +1935,8 @@ function initApp(){
   atualizarStorageInfo();
 }
 
-initApp();
+// O Google cuida do init — initApp é chamado após login
+initGoogle();
 </script>
 </body>
 </html>
