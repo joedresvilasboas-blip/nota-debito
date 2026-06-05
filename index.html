@@ -479,6 +479,7 @@ textarea{resize:vertical;min-height:68px}
     <h2>🏢 Tomadores cadastrados</h2>
     <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Edite os dados de cada tomador (empresa que paga o reembolso).</p>
     <div id="tomadores-edit-list"></div>
+    <button class="btn mt8" onclick="addNovoTomador()" style="border-style:dashed">➕ Adicionar novo tomador</button>
     <button class="btn btn-primary mt8" onclick="salvarTomadores()">💾 Salvar</button>
   </div>
 </div>
@@ -1806,9 +1807,16 @@ function abrirEditarTomadores(){
 
 function renderTomadoresEdit(){
   document.getElementById('tomadores-edit-list').innerHTML=tomadoresEdit.map((t,i)=>`
-    <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px">
-      <div style="font-weight:600;font-size:13px;margin-bottom:8px">${t.key}</div>
-      <label style="margin-top:0">Nome</label>
+    <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;position:relative">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:600;font-size:13px">
+          <input type="text" value="${t.key}" oninput="tomadoresEdit[${i}].key=this.value"
+            style="font-weight:600;font-size:13px;border:none;border-bottom:1px solid var(--border2);border-radius:0;padding:2px 4px;background:transparent;width:120px" />
+          <span style="font-size:11px;color:var(--text2)">(sigla)</span>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="removerTomador(${i})" style="width:auto;padding:4px 10px">🗑️</button>
+      </div>
+      <label style="margin-top:0">Nome da empresa</label>
       <input type="text" value="${t.nome}" oninput="tomadoresEdit[${i}].nome=this.value" style="margin-bottom:6px"/>
       <label>CNPJ</label>
       <input type="text" value="${t.cnpj}" oninput="tomadoresEdit[${i}].cnpj=this.value" style="margin-bottom:6px"/>
@@ -1817,17 +1825,48 @@ function renderTomadoresEdit(){
     </div>`).join('');
 }
 
+function addNovoTomador(){
+  tomadoresEdit.push({key:'NOVO',nome:'',cnpj:'',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'});
+  renderTomadoresEdit();
+  // Scroll para o novo item
+  const list=document.getElementById('tomadores-edit-list');
+  list.lastElementChild?.scrollIntoView({behavior:'smooth'});
+}
+
+function removerTomador(i){
+  if(!confirm('Remover este tomador?'))return;
+  tomadoresEdit.splice(i,1);
+  renderTomadoresEdit();
+}
+
 function salvarTomadores(){
-  // Atualiza TOMADORES em memória e salva
+  // Limpa TOMADORES e reconstrói
+  Object.keys(TOMADORES).forEach(k=>delete TOMADORES[k]);
   tomadoresEdit.forEach(t=>{
-    TOMADORES[t.key]={nome:t.nome,cnpj:t.cnpj,end:t.end||''};
+    if(t.key&&t.nome) TOMADORES[t.key]={nome:t.nome,cnpj:t.cnpj,end:t.end||''};
   });
   S.tomadores=JSON.parse(JSON.stringify(TOMADORES));
-  // Atualiza view
+  // Atualiza view na aba dados
   document.getElementById('cfg-tomadores-list').innerHTML=
-    tomadoresEdit.map(t=>`<b>${t.key}</b> — CNPJ ${t.cnpj}<br>`).join('');
+    Object.entries(TOMADORES).map(([k,t])=>`<b>${k}</b> — CNPJ ${t.cnpj}<br>`).join('');
+  // Atualiza select de tomadores nos modais de evento
+  atualizarSelectTomadores();
   salvar();
   closeModal('modal-tomadores');
+}
+
+function atualizarSelectTomadores(){
+  const selects=['ev-tomador'];
+  selects.forEach(id=>{
+    const sel=document.getElementById(id);
+    if(!sel)return;
+    const val=sel.value;
+    sel.innerHTML='<option value="">Selecione quem vai pagar</option>'+
+      Object.entries(TOMADORES).map(([k,t])=>
+        `<option value="${k}">${k} — ${t.nome}</option>`
+      ).join('');
+    sel.value=val;
+  });
 }
 
 // ─── EDITAR ENVIO ─────────────────────────────────────────────
