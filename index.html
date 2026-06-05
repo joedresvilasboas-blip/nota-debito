@@ -414,11 +414,14 @@ textarea{resize:vertical;min-height:68px}
     <div id="ev-tomador-info" style="font-size:12px;color:var(--text2);margin:-4px 0 8px;display:none"></div>
     <label>Cidade / local</label>
     <input type="text" id="ev-cidade" placeholder="Ex: Campinas – SP" />
-    <label>Período do evento</label>
-    <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px">
-      <input type="date" id="ev-inicio" onchange="autoFim()" />
-      <span style="color:var(--text2);font-size:13px;text-align:center">→</span>
-      <input type="date" id="ev-fim" />
+    <label>1º dia de deslocamento (ida)</label>
+    <input type="date" id="ev-inicio" onchange="autoFim()" />
+    <label>Último dia de deslocamento (volta)</label>
+    <input type="date" id="ev-fim" />
+    <div style="background:var(--blue-bg);color:var(--blue);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;margin-top:6px;line-height:1.6">
+      💡 <b>Inclua os dias de viagem!</b><br>
+      Ex: evento de 3 dias + 1 dia de ida + 1 de volta = <b>5 dias no total</b><br>
+      O Dia 1 na nota será sempre o 1º dia de deslocamento.
     </div>
     <div id="ev-msg" style="font-size:13px;margin:10px 0;min-height:16px"></div>
     <button class="btn btn-primary" onclick="salvarEvento()">💾 Salvar evento</button>
@@ -516,13 +519,16 @@ textarea{resize:vertical;min-height:68px}
     </div>
 
     <label>Dia do evento</label>
+    <div id="edit-dia-auto-info" style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;margin-bottom:6px;display:none">
+      📅 Calculado pela data: <b id="edit-dia-auto-txt"></b>
+    </div>
     <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
       <button class="tipo-btn" id="edit-dia-btn-1" onclick="setEditDia(1)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 1</button>
       <button class="tipo-btn" id="edit-dia-btn-2" onclick="setEditDia(2)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 2</button>
       <button class="tipo-btn" id="edit-dia-btn-3" onclick="setEditDia(3)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 3</button>
       <button class="tipo-btn" id="edit-dia-btn-4" onclick="setEditDia(4)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 4</button>
       <button class="tipo-btn" id="edit-dia-btn-5" onclick="setEditDia(5)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 5</button>
-      <input type="number" id="edit-dia" min="6" max="99" inputmode="numeric"
+      <input type="number" id="edit-dia" min="1" max="99" inputmode="numeric"
         placeholder="6+"
         style="text-align:center;font-size:13px;font-weight:500;flex:1;min-width:0;padding:7px 4px;border:.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"
         oninput="editDiaInput(this.value)" />
@@ -1065,6 +1071,30 @@ function autoFim(){
   if(inicio&&!fim) document.getElementById('ev-fim').value=inicio;
 }
 
+function calcularDiaAuto(){
+  const dataSel=document.getElementById('data').value;
+  const el=document.getElementById('dia-calculado');
+  const txt=document.getElementById('dia-calculado-texto');
+  if(!dataSel||!S.eventoAtivo){el.style.display='none';return;}
+  const ev=S.eventos.find(e=>e.id===S.eventoAtivo);
+  if(!ev||!ev.inicio){el.style.display='none';return;}
+  const diff=Math.round((new Date(dataSel)-new Date(ev.inicio))/(1000*60*60*24));
+  const dia=diff+1;
+  if(dia<1){
+    el.style.display='block';
+    txt.innerHTML='⚠️ Data anterior ao início do evento!';
+    el.style.background='var(--red-bg)';
+    el.style.color='var(--red)';
+  } else {
+    el.style.display='block';
+    el.style.background='var(--bg2)';
+    el.style.color='var(--text)';
+    txt.innerHTML=`<b>Dia ${dia}</b> do evento`;
+  }
+  diaAtivo=Math.max(1,dia);
+  atualizarDesc();
+}
+
 function updateEvTomador(){
   const v=document.getElementById('ev-tomador').value;
   const el=document.getElementById('ev-tomador-info');
@@ -1155,9 +1185,13 @@ function renderEventoAtivo(){
     <div style="font-size:12px;color:var(--text2);margin-top:3px">${tom.nome||ev.tomador}</div>
     <div style="font-size:12px;color:var(--text2)">${ev.cidade||''}${ev.cidade&&ev.inicio?' · ':''}${fd(ev.inicio)}${ev.fim&&ev.fim!==ev.inicio?' → '+fd(ev.fim):''}</div>
   </div>`;
-  if(!document.getElementById('data').value&&ev.inicio){
-    document.getElementById('data').value=ev.inicio;
+  if(ev.inicio){
+    // Preenche com a data de início se não tiver data selecionada
+    if(!document.getElementById('data').value){
+      document.getElementById('data').value=ev.inicio;
+    }
   }
+  calcularDiaAuto();
   atualizarDesc();
 }
 
@@ -2189,16 +2223,29 @@ function editarDespesa(id){
     document.getElementById('edit-outro-tipo').value=label;
   }
 
-  // Dia
+  // Dia — calcula pela data se tiver evento ativo
   const dia=d.diaAtivo||1;
-  if(dia<=5){
-    setEditDia(dia);
-  } else {
-    for(let i=1;i<=5;i++){
-      const btn=document.getElementById('edit-dia-btn-'+i);
-      if(btn) btn.className='tipo-btn';
+  const evAtivo=S.eventos.find(e=>e.id===d.eventoId);
+  if(evAtivo&&evAtivo.inicio&&d.data){
+    const diff=Math.round((new Date(d.data)-new Date(evAtivo.inicio))/(1000*60*60*24));
+    const diaCalc=Math.max(1,diff+1);
+    const infoEl=document.getElementById('edit-dia-auto-info');
+    const infoTxt=document.getElementById('edit-dia-auto-txt');
+    if(infoEl&&infoTxt){
+      infoEl.style.display='block';
+      infoTxt.textContent='Dia '+diaCalc+' (baseado na data '+fd(d.data)+')';
     }
-    document.getElementById('edit-dia').value=dia;
+    if(diaCalc<=5){ setEditDia(diaCalc); }
+    else {
+      for(let i=1;i<=5;i++){const btn=document.getElementById('edit-dia-btn-'+i);if(btn)btn.className='tipo-btn';}
+      document.getElementById('edit-dia').value=diaCalc;
+    }
+  } else {
+    if(dia<=5){ setEditDia(dia); }
+    else {
+      for(let i=1;i<=5;i++){const btn=document.getElementById('edit-dia-btn-'+i);if(btn)btn.className='tipo-btn';}
+      document.getElementById('edit-dia').value=dia;
+    }
   }
 
   // Data
@@ -2383,9 +2430,8 @@ function initApp(){
   renderEventoAtivo();
   document.getElementById('data').value=todayStr();
   setTipo('transporte');
-  setDia(1);
-  const diaInputEl=document.getElementById('dia-input');
-  if(diaInputEl) diaInputEl.value='';
+  diaAtivo=1;
+  calcularDiaAuto();
   atualizarDesc();
   mostrarBannerInstalar();
   atualizarStorageInfo();
