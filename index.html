@@ -1509,8 +1509,8 @@ function renderDespesas(){
       <div class="exp-actions">
         ${d.nfLink?`<button class="btn btn-sm" onclick="window.open('${d.nfLink}','_blank')">🔗 Ver NF</button>`:''}
         <button class="btn btn-sm" onclick="editarDespesa(${d.id})">✏️ Editar</button>
-        <button class="btn btn-sm" onclick="moverDespesa(${d.id},-1)" ${idx===0?'disabled':''} style="opacity:${idx===0?'0.3':'1'}">▲</button>
-        <button class="btn btn-sm" onclick="moverDespesa(${d.id},1)" ${idx===desp.length-1?'disabled':''} style="opacity:${idx===desp.length-1?'0.3':'1'}">▼</button>
+        <button class="btn btn-sm" onclick="moverDespesa(${d.id},-1)" ${idx===0?'disabled':''} style="opacity:${idx===0?'0.25':'1'};font-size:16px;padding:6px 14px" title="Mover para cima">↑ Subir</button>
+        <button class="btn btn-sm" onclick="moverDespesa(${d.id},1)" ${idx===desp.length-1?'disabled':''} style="opacity:${idx===desp.length-1?'0.25':'1'};font-size:16px;padding:6px 14px" title="Mover para baixo">↓ Descer</button>
         <button class="btn btn-sm btn-danger" onclick="delDespesa(${d.id})">🗑️</button>
       </div>
     </div>`).join('');
