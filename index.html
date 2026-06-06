@@ -445,14 +445,16 @@ function initGoogle(){
   google.accounts.id.initialize({
     client_id: CLIENT_ID,
     callback: onGoogleLogin,
-    auto_select: true,
-    cancel_on_tap_outside: false
+    auto_select: false,
+    cancel_on_tap_outside: false,
+    use_fedcm_for_prompt: false
   });
   google.accounts.id.renderButton(
     document.getElementById('google-btn-wrap'),
-    {theme:'outline',size:'large',text:'signin_with_google',locale:'pt-BR'}
+    {theme:'filled_black',size:'large',text:'signin_with_google',locale:'pt-BR',width:300}
   );
-  google.accounts.id.prompt();
+  // Tenta prompt silencioso
+  setTimeout(()=>google.accounts.id.prompt(), 500);
 }
 
 function onGoogleLogin(response){
@@ -616,6 +618,7 @@ async function iniciarDrive(){
     // 4. Carregar despesas de cada evento (pasta própria)
     await carregarTodasDespesas();
 
+    localStorage.setItem('nd_drive_auth','1');
     mostrarApp();
     setSyncStatus('✓ conectado');
   }catch(e){
@@ -1959,199 +1962,11 @@ ${comprovantesHTML}
 
 </div><!-- /main-app -->
 
-<!-- MODAL NOVO EVENTO -->
-<div class="modal-overlay" id="modal-evento">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('modal-evento')">✕</button>
-    <h2 id="modal-evento-title">Novo evento</h2>
-    <input type="hidden" id="ev-edit-id" value="" />
-    <label>Nome do evento</label>
-    <select id="ev-nome-select" onchange="updateEvNome()">
-      <option value="">Selecione o evento</option>
-      <option value="Imersão Lançamento Semente">Imersão Lançamento Semente</option>
-      <option value="Renovação INSIDER">Renovação INSIDER</option>
-      <option value="Renovação PLAT">Renovação PLAT</option>
-      <option value="Mundo Paralelo">Mundo Paralelo</option>
-      <option value="outro">Outro (digitar)</option>
-    </select>
-    <div id="ev-nome-outro-wrap" style="display:none">
-      <label>Nome do evento</label>
-      <input type="text" id="ev-nome" placeholder="Ex: Imersão Campinas" />
-    </div>
-    <input type="hidden" id="ev-nome-hidden" />
-    <label>Tomador do serviço</label>
-    <select id="ev-tomador" onchange="updateEvTomador()">
-      <option value="">Selecione quem vai pagar</option>
-      <option value="PLAT">PLAT — Plat Mentorias e Treinamentos LTDA</option>
-      <option value="INSIDER">INSIDER — Insider Mentorias e Treinamentos LTDA</option>
-      <option value="IGD">IGD / Black Friday — Ignição Digital</option>
-      <option value="FHT">FHT — Formula High Ticket LTDA</option>
-    </select>
-    <div id="ev-tomador-info" style="font-size:12px;color:var(--text2);margin:-4px 0 8px;display:none"></div>
-    <label>Cidade / local</label>
-    <input type="text" id="ev-cidade" placeholder="Ex: Campinas – SP" />
-    <label>1º dia de deslocamento (ida)</label>
-    <input type="date" id="ev-inicio" onchange="autoFim()" />
-    <label>Último dia de deslocamento (volta)</label>
-    <input type="date" id="ev-fim" />
-    <div style="background:var(--blue-bg);color:var(--blue);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;margin-top:6px;line-height:1.6">
-      💡 <b>Inclua os dias de viagem!</b><br>
-      Ex: evento de 3 dias + 1 dia de ida + 1 de volta = <b>5 dias no total</b><br>
-      O Dia 1 na nota será sempre o 1º dia de deslocamento.
-    </div>
-    <div id="ev-msg" style="font-size:13px;margin:10px 0;min-height:16px"></div>
-    <button class="btn btn-primary" onclick="salvarEvento()">💾 Salvar evento</button>
-  </div>
-</div>
 
 
-<!-- MODAL EDITAR PRESTADOR -->
-<div class="modal-overlay" id="modal-prestador">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('modal-prestador')">✕</button>
-    <h2>✏️ Editar dados do prestador</h2>
-    <label>Nome / Razão Social</label>
-    <input type="text" id="ep-nome" />
-    <label>CNPJ</label>
-    <input type="text" id="ep-cnpj" />
-    <label>E-mail</label>
-    <input type="text" id="ep-email" />
-    <label>Telefone</label>
-    <input type="text" id="ep-tel" placeholder="(11) 99999-9999" inputmode="numeric" oninput="mascaraTel(this)" maxlength="15" />
-    <label>Endereço</label>
-    <input type="text" id="ep-end" placeholder="Ex: Rua das Flores, 123 – São Paulo SP" />
-    <button class="btn btn-primary mt16" onclick="salvarPrestador()">💾 Salvar</button>
-  </div>
-</div>
 
 
-<!-- MODAL DADOS BANCÁRIOS -->
-<div class="modal-overlay" id="modal-banco">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('modal-banco')">✕</button>
-    <h2>🏦 Dados bancários</h2>
-    <label>Banco</label>
-    <input type="text" id="eb-banco" placeholder="Ex: BTG Pactual S.A. (208)" />
-    <label>Agência</label>
-    <input type="text" id="eb-agencia" placeholder="Ex: 0050" />
-    <label>Conta Corrente (PJ)</label>
-    <input type="text" id="eb-conta" placeholder="Ex: 848596-8" />
-    <label>Titular</label>
-    <input type="text" id="eb-titular" />
-    <label>CNPJ vinculado</label>
-    <input type="text" id="eb-cnpj" />
-    <button class="btn btn-primary mt16" onclick="salvarBanco()">💾 Salvar</button>
-  </div>
-</div>
 
-
-<!-- MODAL TOMADORES -->
-<div class="modal-overlay" id="modal-tomadores">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('modal-tomadores')">✕</button>
-    <h2>🏢 Tomadores cadastrados</h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Edite os dados de cada tomador (empresa que paga o reembolso).</p>
-    <div id="tomadores-edit-list"></div>
-    <button class="btn mt8" onclick="addNovoTomador()" style="border-style:dashed">➕ Adicionar novo tomador</button>
-    <button class="btn btn-primary mt8" onclick="salvarTomadores()">💾 Salvar</button>
-  </div>
-</div>
-
-
-<!-- MODAL ENVIO -->
-<div class="modal-overlay" id="modal-envio">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('modal-envio')">✕</button>
-    <h2>📧 E-mail de envio</h2>
-    <label>E-mail do financeiro</label>
-    <input type="text" id="ee-email" placeholder="financeiro@empresa.com.br" />
-    <button class="btn btn-primary mt16" onclick="salvarEnvio()">💾 Salvar</button>
-  </div>
-</div>
-
-
-<!-- MODAL EDITAR DESPESA -->
-<div class="modal-overlay" id="modal-editar">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('modal-editar')">✕</button>
-    <h2>✏️ Editar despesa</h2>
-    <input type="hidden" id="edit-id" />
-
-    <div class="slabel" style="margin-top:0">Tipo</div>
-    <div class="tipo-grid" style="grid-template-columns:1fr 1fr 1fr">
-      <button class="tipo-btn" id="edit-btn-transp" onclick="setEditTipo('transporte')">🚗 Transporte</button>
-      <button class="tipo-btn" id="edit-btn-alim" onclick="setEditTipo('alimentacao')">🍽️ Alimentação</button>
-      <button class="tipo-btn" id="edit-btn-outro" onclick="setEditTipo('outro')">➕ Outro</button>
-    </div>
-    <div id="edit-outro-wrap" style="display:none;margin-top:8px">
-      <label>Qual tipo?</label>
-      <input type="text" id="edit-outro-tipo" placeholder="Ex: Farmácia..." oninput="atualizarEditDesc()" />
-    </div>
-
-    <label>Dia do evento</label>
-    <div id="edit-dia-auto-info" style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;margin-bottom:6px;display:none">
-      📅 Calculado pela data: <b id="edit-dia-auto-txt"></b>
-    </div>
-    <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
-      <button class="tipo-btn" id="edit-dia-btn-1" onclick="setEditDia(1)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 1</button>
-      <button class="tipo-btn" id="edit-dia-btn-2" onclick="setEditDia(2)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 2</button>
-      <button class="tipo-btn" id="edit-dia-btn-3" onclick="setEditDia(3)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 3</button>
-      <button class="tipo-btn" id="edit-dia-btn-4" onclick="setEditDia(4)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 4</button>
-      <button class="tipo-btn" id="edit-dia-btn-5" onclick="setEditDia(5)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 5</button>
-      <input type="number" id="edit-dia" min="1" max="99" inputmode="numeric"
-        placeholder="6+"
-        style="text-align:center;font-size:13px;font-weight:500;flex:1;min-width:0;padding:7px 4px;border:.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"
-        oninput="editDiaInput(this.value)" />
-    </div>
-
-    <div class="card" style="margin-top:10px;margin-bottom:4px">
-      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Descrição gerada</div>
-      <div id="edit-desc-preview" style="font-size:14px;color:var(--text);line-height:1.5;font-weight:500"></div>
-    </div>
-
-    <label>Data</label>
-    <input type="date" id="edit-data" />
-
-    <label>Valor (R$)</label>
-    <input type="text" id="edit-valor" inputmode="numeric" oninput="mascaraValor(this)"
-      style="font-size:18px;font-weight:500" />
-
-    <div class="slabel">Link NF-e</div>
-    <div id="edit-nf-show" style="display:none" class="thumb">
-      <span class="ti">🔗</span>
-      <span class="tn" id="edit-nf-text"></span>
-      <button class="tr" onclick="clearEditNF()">✕</button>
-    </div>
-    <input type="text" id="edit-nf-manual" placeholder="Link da NF-e" oninput="setEditNFManual(this.value)" />
-
-    <div class="slabel">Comprovantes</div>
-    <div id="edit-attach-list"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-      <div class="drop" onclick="document.getElementById('edit-file-camera').click()" style="margin-top:0">
-        <div class="di">📷</div><p>Tirar foto</p>
-      </div>
-      <div class="drop" onclick="document.getElementById('edit-file-input').click()" style="margin-top:0">
-        <div class="di">📁</div><p>Galeria / PDF</p>
-      </div>
-    </div>
-    <input type="file" id="edit-file-camera" accept="image/*" capture="environment" style="display:none" onchange="editAttachFile(event)" />
-    <input type="file" id="edit-file-input" accept="image/*,application/pdf" style="display:none" onchange="editAttachFile(event)" />
-
-    <button class="btn btn-primary mt16" onclick="salvarEdicao()">💾 Salvar alterações</button>
-  </div>
-</div>
-
-
-<!-- MODAL CONFIRMAÇÃO QR -->
-<div class="modal-overlay" id="qr-confirm-modal">
-  <div class="modal">
-    <h2>✅ QR code lido!</h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Confirme o link da NF-e:</p>
-    <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;font-size:12px;word-break:break-all;color:var(--text);line-height:1.5;margin-bottom:16px" id="qr-confirm-text"></div>
-    <button class="btn btn-primary" onclick="aceitarQR()">✅ Confirmar e usar</button>
-    <button class="btn mt8" onclick="rejeitarQR()">🔄 Ler novamente</button>
-  </div>
-</div>
 
 
 
@@ -2858,6 +2673,202 @@ function initApp(){
 // O Google cuida do init — initApp é chamado após login
 initGoogle();
 </script>
+
+
+<!-- MODAL NOVO EVENTO -->
+<div class="modal-overlay" id="modal-evento">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-evento')">✕</button>
+    <h2 id="modal-evento-title">Novo evento</h2>
+    <input type="hidden" id="ev-edit-id" value="" />
+    <label>Nome do evento</label>
+    <select id="ev-nome-select" onchange="updateEvNome()">
+      <option value="">Selecione o evento</option>
+      <option value="Imersão Lançamento Semente">Imersão Lançamento Semente</option>
+      <option value="Renovação INSIDER">Renovação INSIDER</option>
+      <option value="Renovação PLAT">Renovação PLAT</option>
+      <option value="Mundo Paralelo">Mundo Paralelo</option>
+      <option value="outro">Outro (digitar)</option>
+    </select>
+    <div id="ev-nome-outro-wrap" style="display:none">
+      <label>Nome do evento</label>
+      <input type="text" id="ev-nome" placeholder="Ex: Imersão Campinas" />
+    </div>
+    <input type="hidden" id="ev-nome-hidden" />
+    <label>Tomador do serviço</label>
+    <select id="ev-tomador" onchange="updateEvTomador()">
+      <option value="">Selecione quem vai pagar</option>
+      <option value="PLAT">PLAT — Plat Mentorias e Treinamentos LTDA</option>
+      <option value="INSIDER">INSIDER — Insider Mentorias e Treinamentos LTDA</option>
+      <option value="IGD">IGD / Black Friday — Ignição Digital</option>
+      <option value="FHT">FHT — Formula High Ticket LTDA</option>
+    </select>
+    <div id="ev-tomador-info" style="font-size:12px;color:var(--text2);margin:-4px 0 8px;display:none"></div>
+    <label>Cidade / local</label>
+    <input type="text" id="ev-cidade" placeholder="Ex: Campinas – SP" />
+    <label>1º dia de deslocamento (ida)</label>
+    <input type="date" id="ev-inicio" onchange="autoFim()" />
+    <label>Último dia de deslocamento (volta)</label>
+    <input type="date" id="ev-fim" />
+    <div style="background:var(--blue-bg);color:var(--blue);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;margin-top:6px;line-height:1.6">
+      💡 <b>Inclua os dias de viagem!</b><br>
+      Ex: evento de 3 dias + 1 dia de ida + 1 de volta = <b>5 dias no total</b><br>
+      O Dia 1 na nota será sempre o 1º dia de deslocamento.
+    </div>
+    <div id="ev-msg" style="font-size:13px;margin:10px 0;min-height:16px"></div>
+    <button class="btn btn-primary" onclick="salvarEvento()">💾 Salvar evento</button>
+  </div>
+</div>
+
+
+<!-- MODAL EDITAR PRESTADOR -->
+<div class="modal-overlay" id="modal-prestador">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-prestador')">✕</button>
+    <h2>✏️ Editar dados do prestador</h2>
+    <label>Nome / Razão Social</label>
+    <input type="text" id="ep-nome" />
+    <label>CNPJ</label>
+    <input type="text" id="ep-cnpj" />
+    <label>E-mail</label>
+    <input type="text" id="ep-email" />
+    <label>Telefone</label>
+    <input type="text" id="ep-tel" placeholder="(11) 99999-9999" inputmode="numeric" oninput="mascaraTel(this)" maxlength="15" />
+    <label>Endereço</label>
+    <input type="text" id="ep-end" placeholder="Ex: Rua das Flores, 123 – São Paulo SP" />
+    <button class="btn btn-primary mt16" onclick="salvarPrestador()">💾 Salvar</button>
+  </div>
+</div>
+
+
+<!-- MODAL DADOS BANCÁRIOS -->
+<div class="modal-overlay" id="modal-banco">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-banco')">✕</button>
+    <h2>🏦 Dados bancários</h2>
+    <label>Banco</label>
+    <input type="text" id="eb-banco" placeholder="Ex: BTG Pactual S.A. (208)" />
+    <label>Agência</label>
+    <input type="text" id="eb-agencia" placeholder="Ex: 0050" />
+    <label>Conta Corrente (PJ)</label>
+    <input type="text" id="eb-conta" placeholder="Ex: 848596-8" />
+    <label>Titular</label>
+    <input type="text" id="eb-titular" />
+    <label>CNPJ vinculado</label>
+    <input type="text" id="eb-cnpj" />
+    <button class="btn btn-primary mt16" onclick="salvarBanco()">💾 Salvar</button>
+  </div>
+</div>
+
+
+<!-- MODAL TOMADORES -->
+<div class="modal-overlay" id="modal-tomadores">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-tomadores')">✕</button>
+    <h2>🏢 Tomadores cadastrados</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Edite os dados de cada tomador (empresa que paga o reembolso).</p>
+    <div id="tomadores-edit-list"></div>
+    <button class="btn mt8" onclick="addNovoTomador()" style="border-style:dashed">➕ Adicionar novo tomador</button>
+    <button class="btn btn-primary mt8" onclick="salvarTomadores()">💾 Salvar</button>
+  </div>
+</div>
+
+
+<!-- MODAL ENVIO -->
+<div class="modal-overlay" id="modal-envio">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-envio')">✕</button>
+    <h2>📧 E-mail de envio</h2>
+    <label>E-mail do financeiro</label>
+    <input type="text" id="ee-email" placeholder="financeiro@empresa.com.br" />
+    <button class="btn btn-primary mt16" onclick="salvarEnvio()">💾 Salvar</button>
+  </div>
+</div>
+
+
+<!-- MODAL EDITAR DESPESA -->
+<div class="modal-overlay" id="modal-editar">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-editar')">✕</button>
+    <h2>✏️ Editar despesa</h2>
+    <input type="hidden" id="edit-id" />
+
+    <div class="slabel" style="margin-top:0">Tipo</div>
+    <div class="tipo-grid" style="grid-template-columns:1fr 1fr 1fr">
+      <button class="tipo-btn" id="edit-btn-transp" onclick="setEditTipo('transporte')">🚗 Transporte</button>
+      <button class="tipo-btn" id="edit-btn-alim" onclick="setEditTipo('alimentacao')">🍽️ Alimentação</button>
+      <button class="tipo-btn" id="edit-btn-outro" onclick="setEditTipo('outro')">➕ Outro</button>
+    </div>
+    <div id="edit-outro-wrap" style="display:none;margin-top:8px">
+      <label>Qual tipo?</label>
+      <input type="text" id="edit-outro-tipo" placeholder="Ex: Farmácia..." oninput="atualizarEditDesc()" />
+    </div>
+
+    <label>Dia do evento</label>
+    <div id="edit-dia-auto-info" style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;margin-bottom:6px;display:none">
+      📅 Calculado pela data: <b id="edit-dia-auto-txt"></b>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
+      <button class="tipo-btn" id="edit-dia-btn-1" onclick="setEditDia(1)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 1</button>
+      <button class="tipo-btn" id="edit-dia-btn-2" onclick="setEditDia(2)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 2</button>
+      <button class="tipo-btn" id="edit-dia-btn-3" onclick="setEditDia(3)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 3</button>
+      <button class="tipo-btn" id="edit-dia-btn-4" onclick="setEditDia(4)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 4</button>
+      <button class="tipo-btn" id="edit-dia-btn-5" onclick="setEditDia(5)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 5</button>
+      <input type="number" id="edit-dia" min="1" max="99" inputmode="numeric"
+        placeholder="6+"
+        style="text-align:center;font-size:13px;font-weight:500;flex:1;min-width:0;padding:7px 4px;border:.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"
+        oninput="editDiaInput(this.value)" />
+    </div>
+
+    <div class="card" style="margin-top:10px;margin-bottom:4px">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Descrição gerada</div>
+      <div id="edit-desc-preview" style="font-size:14px;color:var(--text);line-height:1.5;font-weight:500"></div>
+    </div>
+
+    <label>Data</label>
+    <input type="date" id="edit-data" />
+
+    <label>Valor (R$)</label>
+    <input type="text" id="edit-valor" inputmode="numeric" oninput="mascaraValor(this)"
+      style="font-size:18px;font-weight:500" />
+
+    <div class="slabel">Link NF-e</div>
+    <div id="edit-nf-show" style="display:none" class="thumb">
+      <span class="ti">🔗</span>
+      <span class="tn" id="edit-nf-text"></span>
+      <button class="tr" onclick="clearEditNF()">✕</button>
+    </div>
+    <input type="text" id="edit-nf-manual" placeholder="Link da NF-e" oninput="setEditNFManual(this.value)" />
+
+    <div class="slabel">Comprovantes</div>
+    <div id="edit-attach-list"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <div class="drop" onclick="document.getElementById('edit-file-camera').click()" style="margin-top:0">
+        <div class="di">📷</div><p>Tirar foto</p>
+      </div>
+      <div class="drop" onclick="document.getElementById('edit-file-input').click()" style="margin-top:0">
+        <div class="di">📁</div><p>Galeria / PDF</p>
+      </div>
+    </div>
+    <input type="file" id="edit-file-camera" accept="image/*" capture="environment" style="display:none" onchange="editAttachFile(event)" />
+    <input type="file" id="edit-file-input" accept="image/*,application/pdf" style="display:none" onchange="editAttachFile(event)" />
+
+    <button class="btn btn-primary mt16" onclick="salvarEdicao()">💾 Salvar alterações</button>
+  </div>
+</div>
+
+
+<!-- MODAL CONFIRMAÇÃO QR -->
+<div class="modal-overlay" id="qr-confirm-modal">
+  <div class="modal">
+    <h2>✅ QR code lido!</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Confirme o link da NF-e:</p>
+    <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;font-size:12px;word-break:break-all;color:var(--text);line-height:1.5;margin-bottom:16px" id="qr-confirm-text"></div>
+    <button class="btn btn-primary" onclick="aceitarQR()">✅ Confirmar e usar</button>
+    <button class="btn mt8" onclick="rejeitarQR()">🔄 Ler novamente</button>
+  </div>
+</div>
+
 
 <!-- MODAL AJUDA -->
 <div class="modal-overlay" id="modal-ajuda">
