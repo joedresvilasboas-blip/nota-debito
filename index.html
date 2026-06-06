@@ -133,10 +133,10 @@ textarea{resize:vertical;min-height:68px}
 #add-msg{font-size:13px;margin-top:10px;text-align:center;min-height:18px}
 
 /* Tutorial */
-.tour-overlay{display:none;position:fixed;inset:0;z-index:500;pointer-events:none}
+.tour-overlay{display:none;position:fixed;inset:0;z-index:500}
 .tour-overlay.active{display:block}
-.tour-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:501}
-.tour-box{position:fixed;z-index:502;background:var(--bg);border-radius:16px;padding:20px;width:calc(100% - 48px);max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.3);pointer-events:all}
+.tour-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:501;cursor:pointer}
+.tour-box{position:fixed;z-index:502;background:var(--bg);border-radius:16px;padding:20px;width:calc(100% - 48px);max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.3)}
 .tour-box h3{font-size:17px;font-weight:700;margin-bottom:8px}
 .tour-box p{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px}
 .tour-box .tour-step{font-size:11px;color:var(--text2);margin-bottom:12px}
@@ -159,10 +159,7 @@ textarea{resize:vertical;min-height:68px}
   <p style="font-size:14px;color:var(--text2);text-align:center;margin-bottom:32px;line-height:1.5">
     Faça login com sua conta Google para<br>sincronizar seus dados em qualquer dispositivo
   </p>
-  <div id="google-btn-wrap" style="margin-bottom:12px"></div>
-  <button onclick="loginManual()" style="background:none;border:1px solid var(--border2);border-radius:8px;padding:10px 20px;font-size:14px;cursor:pointer;color:var(--text);font-family:inherit;margin-bottom:16px;width:100%;max-width:300px">
-    🔑 Entrar com Google
-  </button>
+  <div id="google-btn-wrap" style="margin-bottom:16px"></div>
   <div id="aviso-popup" style="display:none;background:#FAEEDA;color:#633806;border-radius:8px;padding:12px 16px;font-size:13px;max-width:320px;text-align:left;margin-bottom:12px;line-height:1.6">
     <b>⚠️ Pop-up bloqueado pelo navegador</b><br>
     Para liberar, clique no ícone 🚫 na barra de endereço do Chrome → <b>"Sempre permitir pop-ups"</b> → recarregue a página.
@@ -219,7 +216,7 @@ textarea{resize:vertical;min-height:68px}
       </div>
       <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
         <div style="display:flex;align-items:center;gap:8px">
-          <button class="btn-help" onclick="document.getElementById('modal-ajuda').classList.add('open')" title="Ajuda">?</button>
+          <button class="btn-help" onclick="abrirAjuda()" title="Ajuda">?</button>
           <div id="sync-status" style="font-size:11px;color:var(--text2)"></div>
         </div>
         <button onclick="fazerLogout()" style="background:none;border:none;font-size:11px;color:var(--text2);cursor:pointer">Sair</button>
@@ -2703,11 +2700,9 @@ function renderTourStep(){
     hl.style.cssText = 'display:none';
   }
 
-  // Posicionar a caixa
+  // Posicionar a caixa sempre centralizada
   const box = document.getElementById('tour-box');
-  box.style.cssText = tourStep <= 1 || tourStep === total-1
-    ? 'bottom:100px;left:50%;transform:translateX(-50%)'
-    : 'bottom:100px;left:50%;transform:translateX(-50%)';
+  box.style.cssText = 'bottom:80px;left:50%;transform:translateX(-50%);position:fixed;z-index:502';
 }
 
 function proximoTour(){
