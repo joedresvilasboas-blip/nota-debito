@@ -329,6 +329,10 @@ textarea{resize:vertical;min-height:68px}
     <div id="gerar-preview" style="margin-top:16px"></div>
     <button class="btn btn-primary mt8" id="btn-gerar-pdf" onclick="gerarPDFUnificado()">📥 Gerar Nota de Débito (PDF)</button>
     <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:8px">Gera um único PDF com nota + comprovantes</p>
+    <button class="btn mt8" id="btn-enviar-email" onclick="enviarEmail()" style="border-color:var(--border2)">
+      📧 Preparar e-mail para o financeiro
+    </button>
+    <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:6px">Abre seu e-mail já preenchido — só anexar o PDF</p>
     <button class="btn btn-danger btn-ghost mt16" onclick="limparEvento()">🗑️ Limpar despesas do evento</button>
   </div>
 
@@ -2612,7 +2616,12 @@ const TOUR_STEPS = [
     tab: 'gerar', selector: '#btn-gerar-pdf'
   },
   {
-    title: '☑️ 7. Finalize o evento',
+    title: '📧 7. Envie para o financeiro',
+    desc: 'Toque em "Preparar e-mail para o financeiro" — o app abre seu e-mail já preenchido com destinatário, assunto e mensagem. Só anexe o PDF e envie!',
+    tab: 'gerar', selector: '#btn-enviar-email'
+  },
+  {
+    title: '☑️ 8. Finalize o evento',
     desc: 'Após receber o reembolso, clique em "Finalizar" no evento para removê-lo do app. O PDF fica salvo no seu Google Drive.',
     tab: 'eventos', selector: null
   },
@@ -2718,6 +2727,43 @@ function pularTour(){
 
 function abrirAjuda(){
   openModal('modal-ajuda');
+}
+
+// ─── ENVIAR E-MAIL ────────────────────────────────────────────
+function enviarEmail(){
+  if(!gerarEventoId){alert('Selecione um evento.');return}
+  const ev=S.eventos.find(e=>e.id===gerarEventoId);
+  if(!ev){alert('Evento não encontrado.');return}
+  const desp=S.despesas.filter(d=>d.eventoId===gerarEventoId);
+  if(!desp.length){alert('Nenhuma despesa neste evento.');return}
+
+  const p=S.prestador||{};
+  const num=(document.getElementById('num-nota').value||padNum(S.notaCounter)).padStart(4,'0');
+  const total=desp.reduce((s,d)=>s+d.valor,0);
+  const nomeEvento=ev.nome+(ev.cidade?' | '+ev.cidade:'');
+  const emailFinanceiro=p.emailEnvio||document.getElementById('cfg-email-envio')?.textContent||'financeiro@platmentorias.com.br';
+
+  const assunto=`Nota de Débito para reembolso — ${nomeEvento}`;
+
+  const corpo=
+`Olá, equipe financeira!
+
+Segue em anexo a Nota de Débito referente às despesas do evento abaixo para análise e processamento do reembolso.
+
+📅 Evento: ${nomeEvento}
+💰 Valor total: ${fv(total)}
+📄 Nota Nº: ${num}
+
+Todos os comprovantes estão incluídos no PDF anexo.
+Qualquer dúvida, estou à disposição.
+
+Atenciosamente,
+${p.nome||ME.nome}
+✉️ ${p.email||ME.email}
+📞 ${p.tel||ME.tel}`;
+
+  const mailto=`mailto:${emailFinanceiro}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+  window.location.href=mailto;
 }
 
 // ─── PWA INSTALL ──────────────────────────────────────────────
@@ -2834,6 +2880,10 @@ initGoogle();
       <div style="margin-bottom:16px">
         <div style="font-weight:600;margin-bottom:4px">📥 Gerar</div>
         <div style="color:var(--text2);font-size:13px">Confira o resumo por categoria e gere o PDF. O arquivo inclui a nota de débito + todos os comprovantes em um único PDF.</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:4px">📧 Enviar</div>
+        <div style="color:var(--text2);font-size:13px">Toque em <b>"Preparar e-mail para o financeiro"</b> — abre seu e-mail já preenchido com destinatário, assunto e mensagem padrão. Só anexe o PDF e envie!</div>
       </div>
       <div style="margin-bottom:16px">
         <div style="font-weight:600;margin-bottom:4px">⚙️ Dados</div>
