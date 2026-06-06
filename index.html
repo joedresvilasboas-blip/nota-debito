@@ -27,8 +27,10 @@
   --red:#A32D2D;--red-bg:#FCEBEB;
 }
 @media(prefers-color-scheme:dark){
-  :root{--bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;--text:#f2f2f7;--text2:#aeaeb2;--text3:#636366;--border:#38383a;--border2:#545456;--primary:#f2f2f7;--primary-fg:#1c1c1e}
+  :root:not([data-theme="light"]){--bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;--text:#f2f2f7;--text2:#aeaeb2;--text3:#636366;--border:#38383a;--border2:#545456;--primary:#f2f2f7;--primary-fg:#1c1c1e}
 }
+[data-theme="dark"]{--bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;--text:#f2f2f7;--text2:#aeaeb2;--text3:#636366;--border:#38383a;--border2:#545456;--primary:#f2f2f7;--primary-fg:#1c1c1e}
+[data-theme="light"]{--bg:#fff;--bg2:#f6f6f6;--bg3:#ececec;--text:#111;--text2:#666;--text3:#999;--border:#ddd;--border2:#bbb;--primary:#111;--primary-fg:#fff}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:16px;overscroll-behavior:none}
 .app{max-width:480px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
 
@@ -223,6 +225,7 @@ textarea{resize:vertical;min-height:68px}
       </div>
       <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
         <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn-help" onclick="alternarTema()" id="btn-tema" title="Alternar tema">🌙</button>
           <button class="btn-help" onclick="abrirAjuda()" title="Ajuda">?</button>
           <div id="sync-status" style="font-size:11px;color:var(--text2)"></div>
         </div>
@@ -2461,6 +2464,46 @@ function salvarEdicao(){
   renderDespesas();
 }
 
+// ─── TEMA ─────────────────────────────────────────────────────
+function inicializarTema(){
+  const tema = localStorage.getItem('nd_tema');
+  if(tema){
+    document.documentElement.setAttribute('data-theme', tema);
+  }
+  atualizarBtnTema();
+}
+
+function alternarTema(){
+  const html = document.documentElement;
+  const atual = html.getAttribute('data-theme');
+  const sistemaDark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  
+  let novo;
+  if(!atual){
+    // Segue o sistema — forçar o oposto
+    novo = sistemaDark ? 'light' : 'dark';
+  } else if(atual === 'dark'){
+    novo = 'light';
+  } else {
+    novo = 'dark';
+  }
+  
+  html.setAttribute('data-theme', novo);
+  localStorage.setItem('nd_tema', novo);
+  atualizarBtnTema();
+  mostrarToast(novo === 'dark' ? '🌙 Modo escuro' : '☀️ Modo claro', 'ok');
+}
+
+function atualizarBtnTema(){
+  const btn = document.getElementById('btn-tema');
+  if(!btn) return;
+  const tema = document.documentElement.getAttribute('data-theme');
+  const sistemaDark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const isDark = tema === 'dark' || (!tema && sistemaDark);
+  btn.textContent = isDark ? '☀️' : '🌙';
+  btn.title = isDark ? 'Modo claro' : 'Modo escuro';
+}
+
 // ─── TUTORIAL / TOUR ─────────────────────────────────────────
 const TOUR_STEPS = [
   {
@@ -2727,6 +2770,7 @@ function fazerLogout(){
 }
 
 function initApp(){
+  inicializarTema();
   carregarPrestador();
   renderEventos();
   renderEventoAtivo();
@@ -2736,6 +2780,29 @@ function initApp(){
   calcularDiaAuto();
   atualizarDesc();
     atualizarStorageInfo();
+}
+
+// Registrar Service Worker para PWA instalável
+if('serviceWorker' in navigator){
+  const swCode = `
+const CACHE = 'reembolso-igd-v1';
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './index.html', './manifest.json'])));
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  if(e.request.method !== 'GET') return;
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+});`;
+  const blob = new Blob([swCode], {type:'application/javascript'});
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl, {scope:'./'})
+    .then(()=>console.log('SW registrado'))
+    .catch(e=>console.warn('SW erro:',e));
 }
 
 // O Google cuida do init — initApp é chamado após login
