@@ -254,26 +254,16 @@ textarea{resize:vertical;min-height:68px}
       <input type="text" id="outro-tipo" placeholder="Ex: Farmácia, Estacionamento..." oninput="atualizarDesc()" />
     </div>
 
-    <label>Dia do evento</label>
-    <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
-      <button class="tipo-btn sel" id="dia-btn-1" onclick="setDia(1)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 1</button>
-      <button class="tipo-btn" id="dia-btn-2" onclick="setDia(2)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 2</button>
-      <button class="tipo-btn" id="dia-btn-3" onclick="setDia(3)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 3</button>
-      <button class="tipo-btn" id="dia-btn-4" onclick="setDia(4)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 4</button>
-      <button class="tipo-btn" id="dia-btn-5" onclick="setDia(5)" style="padding:7px 4px;font-size:13px;flex:1;min-width:0">Dia 5</button>
-      <input type="number" id="dia-input" min="6" max="99" inputmode="numeric"
-        placeholder="6+"
-        style="text-align:center;font-size:13px;font-weight:500;flex:1;min-width:0;padding:7px 4px;border:.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"
-        oninput="setDiaInput(this.value)" />
-    </div>
-
     <div class="card" style="margin-top:8px;margin-bottom:4px">
       <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Descrição gerada</div>
       <div id="desc-preview" style="font-size:14px;color:var(--text);line-height:1.5;font-weight:500"></div>
     </div>
 
-    <label>Data</label>
-    <input type="date" id="data" />
+    <label>Data da despesa</label>
+    <input type="date" id="data" onchange="calcularDiaAuto()" />
+    <div id="dia-calculado" style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;margin-top:4px;display:none">
+      📅 <span id="dia-calculado-texto"></span>
+    </div>
 
     <label>Valor (R$)</label>
     <input type="text" id="valor" placeholder="R$ 0,00" inputmode="numeric"
