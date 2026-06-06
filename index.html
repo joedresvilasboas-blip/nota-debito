@@ -2137,22 +2137,6 @@ ${comprovantesHTML}
 
 
 
-<!-- TOUR OVERLAY -->
-<div class="tour-overlay" id="tour-overlay">
-  <div class="tour-backdrop" onclick="pularTour()"></div>
-  <div class="tour-highlight" id="tour-highlight"></div>
-  <div class="tour-box" id="tour-box">
-    <div class="tour-step" id="tour-step-label"></div>
-    <h3 id="tour-title"></h3>
-    <p id="tour-desc"></p>
-    <div class="tour-nav">
-      <button class="btn btn-sm btn-ghost" onclick="pularTour()" style="width:auto;font-size:12px">Pular</button>
-      <div class="tour-dots" id="tour-dots"></div>
-      <button class="btn btn-sm btn-primary" id="tour-next-btn" onclick="proximoTour()" style="width:auto">Próximo →</button>
-    </div>
-  </div>
-</div>
-
 </body></html>`;
 
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
@@ -2752,6 +2736,23 @@ initGoogle();
       </div>
     </div>
     <button class="btn btn-primary mt16" onclick="closeModal('modal-ajuda');iniciarTour()">▶️ Ver tour interativo</button>
+  </div>
+</div>
+
+
+<!-- TOUR OVERLAY -->
+<div class="tour-overlay" id="tour-overlay">
+  <div class="tour-backdrop" onclick="pularTour()"></div>
+  <div class="tour-highlight" id="tour-highlight"></div>
+  <div class="tour-box" id="tour-box">
+    <div class="tour-step" id="tour-step-label"></div>
+    <h3 id="tour-title"></h3>
+    <p id="tour-desc"></p>
+    <div class="tour-nav">
+      <button class="btn btn-sm btn-ghost" onclick="pularTour()" style="width:auto;font-size:12px">Pular</button>
+      <div class="tour-dots" id="tour-dots"></div>
+      <button class="btn btn-sm btn-primary" id="tour-next-btn" onclick="proximoTour()" style="width:auto">Próximo →</button>
+    </div>
   </div>
 </div>
 </body>
