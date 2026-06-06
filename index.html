@@ -190,7 +190,7 @@ textarea{resize:vertical;min-height:68px}
     <label>Nome / Razão Social *</label>
     <input type="text" id="setup-nome" placeholder="Ex: João Silva" />
     <label>CPF/CNPJ *</label>
-    <input type="text" id="setup-cnpj" placeholder="Ex: 000.000.000-00" />
+    <input type="text" id="setup-cnpj" placeholder="Ex: 00.000.000/0001-00" inputmode="numeric" oninput="mascaraCpfCnpj(this)" maxlength="18" />
     <label>E-mail *</label>
     <input type="text" id="setup-email" />
     <label>Telefone</label>
@@ -208,7 +208,7 @@ textarea{resize:vertical;min-height:68px}
     <label>Favorecido (titular da conta)</label>
     <input type="text" id="setup-titular" placeholder="Ex: João Silva" />
     <label>CPF/CNPJ vinculado à conta</label>
-    <input type="text" id="setup-cnpj-banco" placeholder="Ex: 00.000.000/0001-00" />
+    <input type="text" id="setup-cnpj-banco" placeholder="Ex: 00.000.000/0001-00" inputmode="numeric" oninput="mascaraCpfCnpj(this)" maxlength="18" />
 
     <div id="setup-msg" style="font-size:13px;color:var(--red);margin:10px 0;min-height:16px"></div>
     <button class="btn btn-primary mt8" onclick="finalizarSetup()">💾 Salvar e começar</button>
@@ -1210,6 +1210,25 @@ function setDiaInput(v){
   }
 }
 
+function mascaraCpfCnpj(input){
+  let v = input.value.replace(/\D/g,'');
+  if(v.length <= 11){
+    // CPF: 000.000.000-00
+    v = v.replace(/^(\d{3})(\d)/,'$1.$2');
+    v = v.replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3');
+    v = v.replace(/\.(\d{3})(\d)/,'.$1-$2');
+    if(v.length > 14) v = v.slice(0,14);
+  } else {
+    // CNPJ: 00.000.000/0000-00
+    v = v.replace(/^(\d{2})(\d)/,'$1.$2');
+    v = v.replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3');
+    v = v.replace(/\.(\d{3})(\d)/,'.$1/$2');
+    v = v.replace(/(\d{4})(\d)/,'$1-$2');
+    if(v.length > 18) v = v.slice(0,18);
+  }
+  input.value = v;
+}
+
 function mascaraTel(input){
   let v = input.value.replace(/\D/g,'');
   if(v.length > 11) v = v.slice(0,11);
@@ -2081,7 +2100,8 @@ function abrirEditarBanco(){
   document.getElementById('eb-agencia').value=p.agencia||document.getElementById('cfg-agencia').textContent||ME.ag;
   document.getElementById('eb-conta').value=p.conta||document.getElementById('cfg-conta').textContent||ME.conta;
   document.getElementById('eb-titular').value=p.titular||document.getElementById('cfg-titular').textContent||ME.nome;
-  document.getElementById('eb-cnpj').value=p.cnpjBanco||document.getElementById('cfg-cnpj-banco').textContent||ME.cnpj;
+  const ebCnpj=document.getElementById('eb-cnpj');
+  ebCnpj.value=p.cnpjBanco||document.getElementById('cfg-cnpj-banco').textContent||ME.cnpj;
   openModal('modal-banco');
 }
 
@@ -2126,7 +2146,7 @@ function renderTomadoresEdit(){
       <label style="margin-top:0">Nome da empresa</label>
       <input type="text" value="${t.nome}" oninput="tomadoresEdit[${i}].nome=this.value" style="margin-bottom:6px"/>
       <label>CNPJ</label>
-      <input type="text" value="${t.cnpj}" oninput="tomadoresEdit[${i}].cnpj=this.value" style="margin-bottom:6px"/>
+      <input type="text" value="${t.cnpj}" inputmode="numeric" maxlength="18" oninput="mascaraCpfCnpj(this);tomadoresEdit[${i}].cnpj=this.value" style="margin-bottom:6px"/>
       <label>Endereço</label>
       <input type="text" value="${t.end||''}" oninput="tomadoresEdit[${i}].end=this.value"/>
     </div>`).join('');
@@ -2196,7 +2216,8 @@ function salvarEnvio(){
 // ─── EDITAR PRESTADOR ────────────────────────────────────────
 function abrirEditarPrestador(){
   document.getElementById('ep-nome').value=document.getElementById('cfg-nome').textContent||ME.nome;
-  document.getElementById('ep-cnpj').value=document.getElementById('cfg-cnpj').textContent||ME.cnpj;
+  const epCnpj=document.getElementById('ep-cnpj');
+  epCnpj.value=document.getElementById('cfg-cnpj').textContent||ME.cnpj;
   document.getElementById('ep-email').value=document.getElementById('cfg-email').textContent||ME.email;
   document.getElementById('ep-tel').value=document.getElementById('cfg-tel').textContent||ME.tel;
   const end=document.getElementById('cfg-end').textContent||'';
@@ -2864,7 +2885,7 @@ initGoogle();
     <label>Nome / Razão Social</label>
     <input type="text" id="ep-nome" />
     <label>CNPJ</label>
-    <input type="text" id="ep-cnpj" />
+    <input type="text" id="ep-cnpj" placeholder="Ex: 00.000.000/0001-00" inputmode="numeric" oninput="mascaraCpfCnpj(this)" maxlength="18" />
     <label>E-mail</label>
     <input type="text" id="ep-email" />
     <label>Telefone</label>
@@ -2890,7 +2911,7 @@ initGoogle();
     <label>Titular</label>
     <input type="text" id="eb-titular" />
     <label>CNPJ vinculado</label>
-    <input type="text" id="eb-cnpj" />
+    <input type="text" id="eb-cnpj" placeholder="Ex: 00.000.000/0001-00" inputmode="numeric" oninput="mascaraCpfCnpj(this)" maxlength="18" />
     <button class="btn btn-primary mt16" onclick="salvarBanco()">💾 Salvar</button>
   </div>
 </div>
