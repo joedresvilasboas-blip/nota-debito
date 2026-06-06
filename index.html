@@ -145,7 +145,7 @@ textarea{resize:vertical;min-height:68px}
 .tour-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:background .2s}
 .tour-dot.active{background:var(--primary)}
 .tour-highlight{position:fixed;z-index:502;border-radius:12px;box-shadow:0 0 0 4px #fff,0 0 0 7px rgba(255,255,255,.3);pointer-events:none;transition:all .3s}
-.btn-help{background:none;border:1.5px solid var(--border2);border-radius:50%;width:28px;height:28px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);flex-shrink:0}
+.btn-help{background:var(--primary);border:none;border-radius:50%;width:30px;height:30px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -2568,43 +2568,73 @@ const TOUR_STEPS = [
     tab: null, selector: null
   },
   {
-    title: '📅 Eventos',
-    desc: 'Comece sempre aqui! Cadastre o evento com as datas completas de deslocamento — inclua o dia de ida e o de volta, não só os dias do evento em si.',
-    tab: 'eventos', selector: '#tab-eventos'
+    title: '📅 1. Cadastre o evento',
+    desc: 'Comece sempre criando o evento. Informe as datas completas de deslocamento — inclua o dia de ida e o de volta, não só os dias do evento.',
+    tab: 'eventos', selector: '#screen-eventos .btn-primary'
   },
   {
-    title: '➕ Lançar despesas',
-    desc: 'Aqui você registra cada gasto. Selecione o tipo (Transporte, Alimentação ou Outro), escolha a data e o valor. O Dia X é calculado automaticamente!',
-    tab: 'lancar', selector: '#tab-lancar'
+    title: '➕ 2. Tipo de despesa',
+    desc: 'Selecione Transporte, Alimentação ou Outro. A descrição é gerada automaticamente com o dia calculado pela data.',
+    tab: 'lancar', selector: '.tipo-grid'
   },
   {
-    title: '📎 Comprovantes',
-    desc: 'Após preencher os dados, anexe o comprovante. Tire foto com 📷 Câmera ou escolha da 📁 Galeria. PDFs do Uber/99 também são aceitos.',
-    tab: 'lancar', selector: '.slabel'
+    title: '📅 3. Data da despesa',
+    desc: 'Escolha a data do gasto. O app calcula automaticamente qual é o Dia 1, Dia 2... baseado na data de início do evento.',
+    tab: 'lancar', selector: '#data'
   },
   {
-    title: '📋 Conferir despesas',
+    title: '📎 4. Comprovantes',
+    desc: 'Tire foto com 📷 Câmera ou escolha da 📁 Galeria. PDFs do Uber/99 também são aceitos. Pode anexar vários por despesa.',
+    tab: 'lancar', selector: '#file-camera'
+  },
+  {
+    title: '📋 5. Confira as despesas',
     desc: 'Veja tudo que lançou, reordene com ↑ Subir / ↓ Descer e edite qualquer item com ✏️ Editar.',
     tab: 'despesas', selector: '#tab-despesas'
   },
   {
-    title: '📥 Gerar nota',
-    desc: 'Quando terminar, gere a Nota de Débito. Você verá o resumo por categoria antes de gerar. O PDF final inclui a nota + todos os comprovantes.',
-    tab: 'gerar', selector: '#tab-gerar'
+    title: '📥 6. Gere o PDF',
+    desc: 'Confira o resumo por categoria e gere o PDF. O arquivo inclui a nota de débito + todos os comprovantes em um único arquivo.',
+    tab: 'gerar', selector: '#btn-gerar-pdf'
   },
   {
-    title: '⚙️ Seus dados',
-    desc: 'Em Dados você edita suas informações pessoais, bancárias e os tomadores cadastrados.',
-    tab: 'config', selector: '#tab-config'
+    title: '☑️ 7. Finalize o evento',
+    desc: 'Após receber o reembolso, clique em "Finalizar" no evento para removê-lo do app. O PDF fica salvo no seu Google Drive.',
+    tab: 'eventos', selector: null
   },
   {
     title: '✅ Pronto!',
-    desc: 'Seus dados ficam salvos automaticamente no seu Google Drive — acesse de qualquer dispositivo. Toque em ? para ver este guia novamente.',
+    desc: 'Toque em ? a qualquer momento para rever este guia. Bom trabalho! 🚀',
     tab: null, selector: null
   }
 ];
 
 let tourStep = 0;
+
+function mostrarBannerTutorial(){
+  const banner = document.createElement('div');
+  banner.id = 'banner-tutorial';
+  banner.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--primary);color:var(--primary-fg);
+    padding:14px 20px;border-radius:14px;z-index:300;
+    box-shadow:0 4px 20px rgba(0,0,0,.3);
+    display:flex;align-items:center;gap:12px;
+    font-family:-apple-system,sans-serif;font-size:14px;
+    max-width:calc(100% - 48px);width:380px`;
+  banner.innerHTML = `
+    <span style="font-size:24px">👋</span>
+    <div style="flex:1">
+      <div style="font-weight:600;margin-bottom:2px">Primeira vez aqui?</div>
+      <div style="font-size:12px;opacity:.85">Veja como usar o app em 1 minuto</div>
+    </div>
+    <button onclick="document.getElementById('banner-tutorial').remove();iniciarTour()"
+      style="background:#fff;color:#000;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">
+      Ver tutorial
+    </button>
+    <button onclick="document.getElementById('banner-tutorial').remove();localStorage.setItem('nd_tour_done','1')"
+      style="background:none;border:none;color:var(--primary-fg);cursor:pointer;font-size:20px;opacity:.7;padding:0 4px">✕</button>`;
+  document.body.appendChild(banner);
+}
 
 function iniciarTour(){
   closeModal('modal-ajuda');
