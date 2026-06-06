@@ -2153,39 +2153,6 @@ ${comprovantesHTML}
   </div>
 </div>
 
-<!-- MODAL AJUDA -->
-<div class="modal-overlay" id="modal-ajuda">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('modal-ajuda')">✕</button>
-    <h2>📖 Guia rápido</h2>
-    <div style="font-size:14px;line-height:1.8">
-      <div style="margin-bottom:16px">
-        <div style="font-weight:600;margin-bottom:4px">📅 Eventos</div>
-        <div style="color:var(--text2);font-size:13px">Cadastre o evento <b>antes</b> de lançar despesas. Coloque as datas de deslocamento completas — incluindo dia de ida e volta, não só os dias do evento.</div>
-      </div>
-      <div style="margin-bottom:16px">
-        <div style="font-weight:600;margin-bottom:4px">➕ Lançar</div>
-        <div style="color:var(--text2);font-size:13px">Selecione o tipo (Transporte, Alimentação ou Outro), escolha a data e informe o valor. O <b>Dia X</b> é calculado automaticamente pela data. Anexe o comprovante (foto ou PDF).</div>
-      </div>
-      <div style="margin-bottom:16px">
-        <div style="font-weight:600;margin-bottom:4px">📋 Despesas</div>
-        <div style="color:var(--text2);font-size:13px">Confira tudo que lançou. Use ↑ Subir / ↓ Descer para reordenar. Toque em ✏️ Editar para corrigir qualquer dado ou trocar comprovantes.</div>
-      </div>
-      <div style="margin-bottom:16px">
-        <div style="font-weight:600;margin-bottom:4px">📥 Gerar</div>
-        <div style="color:var(--text2);font-size:13px">Confira o resumo por categoria e gere o PDF. O arquivo inclui a nota de débito + todos os comprovantes em um único PDF.</div>
-      </div>
-      <div style="margin-bottom:16px">
-        <div style="font-weight:600;margin-bottom:4px">⚙️ Dados</div>
-        <div style="color:var(--text2);font-size:13px">Edite seus dados pessoais, bancários, tomadores cadastrados e e-mail de envio.</div>
-      </div>
-      <div style="background:var(--amber-bg);color:var(--amber);border-radius:8px;padding:10px 12px;font-size:13px">
-        ⚠️ <b>Lembre-se:</b> prints de tela do banco não são aceitos. Uber/99 envie o PDF com trajeto completo.
-      </div>
-    </div>
-    <button class="btn btn-primary mt16" onclick="closeModal('modal-ajuda');iniciarTour()">▶️ Ver tour interativo</button>
-  </div>
-</div>
 </body></html>`;
 
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
@@ -2753,5 +2720,39 @@ function initApp(){
 // O Google cuida do init — initApp é chamado após login
 initGoogle();
 </script>
+
+<!-- MODAL AJUDA -->
+<div class="modal-overlay" id="modal-ajuda">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-ajuda')">✕</button>
+    <h2>📖 Guia rápido</h2>
+    <div style="font-size:14px;line-height:1.8">
+      <div style="margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:4px">📅 Eventos</div>
+        <div style="color:var(--text2);font-size:13px">Cadastre o evento <b>antes</b> de lançar despesas. Coloque as datas de deslocamento completas — incluindo dia de ida e volta, não só os dias do evento.</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:4px">➕ Lançar</div>
+        <div style="color:var(--text2);font-size:13px">Selecione o tipo (Transporte, Alimentação ou Outro), escolha a data e informe o valor. O <b>Dia X</b> é calculado automaticamente pela data. Anexe o comprovante (foto ou PDF).</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:4px">📋 Despesas</div>
+        <div style="color:var(--text2);font-size:13px">Confira tudo que lançou. Use ↑ Subir / ↓ Descer para reordenar. Toque em ✏️ Editar para corrigir qualquer dado ou trocar comprovantes.</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:4px">📥 Gerar</div>
+        <div style="color:var(--text2);font-size:13px">Confira o resumo por categoria e gere o PDF. O arquivo inclui a nota de débito + todos os comprovantes em um único PDF.</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:4px">⚙️ Dados</div>
+        <div style="color:var(--text2);font-size:13px">Edite seus dados pessoais, bancários, tomadores cadastrados e e-mail de envio.</div>
+      </div>
+      <div style="background:var(--amber-bg);color:var(--amber);border-radius:8px;padding:10px 12px;font-size:13px">
+        ⚠️ <b>Lembre-se:</b> prints de tela do banco não são aceitos. Uber/99 envie o PDF com trajeto completo.
+      </div>
+    </div>
+    <button class="btn btn-primary mt16" onclick="closeModal('modal-ajuda');iniciarTour()">▶️ Ver tour interativo</button>
+  </div>
+</div>
 </body>
 </html>
