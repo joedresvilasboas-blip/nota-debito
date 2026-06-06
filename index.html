@@ -219,7 +219,7 @@ textarea{resize:vertical;min-height:68px}
       </div>
       <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
         <div style="display:flex;align-items:center;gap:8px">
-          <button class="btn-help" onclick="abrirAjuda()" title="Ajuda">?</button>
+          <button class="btn-help" onclick="document.getElementById('modal-ajuda').classList.add('open')" title="Ajuda">?</button>
           <div id="sync-status" style="font-size:11px;color:var(--text2)"></div>
         </div>
         <button onclick="fazerLogout()" style="background:none;border:none;font-size:11px;color:var(--text2);cursor:pointer">Sair</button>
@@ -276,16 +276,6 @@ textarea{resize:vertical;min-height:68px}
       oninput="mascaraValor(this)" style="font-size:18px;font-weight:500" />
 
     <div class="slabel">Nota fiscal / comprovante</div>
-    <div class="drop" onclick="iniciarQR()" id="qr-area" style="margin-top:8px">
-      <div class="di">📷</div>
-      <p>Escanear QR code da NF-e<br><small>Toque para abrir a câmera</small></p>
-    </div>
-    <div id="nf-show" style="display:none" class="thumb">
-      <span class="ti">🔗</span>
-      <span class="tn" id="nf-text"></span>
-      <button class="tr" onclick="clearNF()">✕</button>
-    </div>
-    <input type="text" id="qr-manual" placeholder="Ou cole o link da NF-e aqui" style="margin-top:8px" oninput="setNFManual(this.value)" />
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
       <div class="drop" onclick="document.getElementById('file-camera').click()" style="margin-top:0">
@@ -300,6 +290,17 @@ textarea{resize:vertical;min-height:68px}
     <input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none" onchange="attachFile(event)" />
     <input type="file" id="file-input" accept="image/*,application/pdf" style="display:none" onchange="attachFile(event)" />
     <div id="attach-list"></div>
+
+    <div class="drop" onclick="iniciarQR()" id="qr-area" style="margin-top:8px">
+      <div class="di">📷</div>
+      <p>Escanear QR code da NF-e<br><small>Toque para abrir a câmera</small></p>
+    </div>
+    <div id="nf-show" style="display:none" class="thumb">
+      <span class="ti">🔗</span>
+      <span class="tn" id="nf-text"></span>
+      <button class="tr" onclick="clearNF()">✕</button>
+    </div>
+    <input type="text" id="qr-manual" placeholder="Ou cole o link da NF-e aqui" style="margin-top:8px" oninput="setNFManual(this.value)" />
 
     <button class="btn btn-primary mt16" onclick="addDespesa()">➕ Adicionar despesa</button>
     <div id="add-msg"></div>
@@ -1058,7 +1059,7 @@ function renderEventos(){
         <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;margin-left:8px">
           ${isAtivo?'<span style="font-size:11px;background:var(--green-bg);color:var(--green);padding:3px 8px;border-radius:20px;font-weight:600">✓ Ativo</span>':''}
           <button class="btn btn-sm" onclick="event.stopPropagation();editarEvento('${ev.id}')" style="font-size:12px">✏️</button>
-          <button class="btn btn-sm" onclick="event.stopPropagation();concluirEvento('${ev.id}')" style="font-size:12px;background:var(--green-bg);color:var(--green);border-color:var(--green)">✅ Concluído</button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();concluirEvento('${ev.id}')" style="font-size:12px;color:var(--text2)">☑️ Finalizar</button>
           <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deletarEvento('${ev.id}')" style="font-size:12px">🗑️</button>
         </div>
       </div>
