@@ -355,7 +355,7 @@ textarea{resize:vertical;min-height:68px}
       <div id="cfg-tomadores-list">
         <b>PLAT</b> — CNPJ 45.805.035/0001-36<br>
         <b>INSIDER</b> — CNPJ 34.295.555/0001-20<br>
-        <b>FL / Black Friday</b> — CNPJ 10.332.345/0001-04<br>
+        <b>IGD / Black Friday</b> — CNPJ 10.332.345/0001-04<br>
         <b>FHT</b> — CNPJ 53.049.699/0001-40
       </div>
       <button class="btn btn-sm mt8" onclick="abrirEditarTomadores()" style="width:auto">✏️ Editar</button>
@@ -404,7 +404,7 @@ textarea{resize:vertical;min-height:68px}
       <option value="">Selecione quem vai pagar</option>
       <option value="PLAT">PLAT — Plat Mentorias e Treinamentos LTDA</option>
       <option value="INSIDER">INSIDER — Insider Mentorias e Treinamentos LTDA</option>
-      <option value="FL">FL / Black Friday — Ignição Digital</option>
+      <option value="IGD">IGD / Black Friday — Ignição Digital</option>
       <option value="FHT">FHT — Formula High Ticket LTDA</option>
     </select>
     <div id="ev-tomador-info" style="font-size:12px;color:var(--text2);margin:-4px 0 8px;display:none"></div>
@@ -584,7 +584,7 @@ textarea{resize:vertical;min-height:68px}
 const TOMADORES_PADRAO={
   PLAT:{nome:'PLAT MENTORIAS E TREINAMENTOS LTDA',cnpj:'45.805.035/0001-36',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'},
   INSIDER:{nome:'INSIDER MENTORIAS E TREINAMENTOS LTDA',cnpj:'34.295.555/0001-20',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'},
-  FL:{nome:'IGNIÇÃO DIGITAL TECNOLOGIA DA INFORMAÇÃO LTDA',cnpj:'10.332.345/0001-04',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'},
+  IGD:{nome:'IGNIÇÃO DIGITAL TECNOLOGIA DA INFORMAÇÃO LTDA',cnpj:'10.332.345/0001-04',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'},
   FHT:{nome:'FORMULA HIGH TICKET LTDA',cnpj:'53.049.699/0001-40',end:'SHCN CRN 516 CLN 316 - Asa Norte, Brasília'}
 };
 // TOMADORES é o objeto ativo — começa com os padrões
@@ -1058,6 +1058,7 @@ function renderEventos(){
         <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;margin-left:8px">
           ${isAtivo?'<span style="font-size:11px;background:var(--green-bg);color:var(--green);padding:3px 8px;border-radius:20px;font-weight:600">✓ Ativo</span>':''}
           <button class="btn btn-sm" onclick="event.stopPropagation();editarEvento('${ev.id}')" style="font-size:12px">✏️</button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();concluirEvento('${ev.id}')" style="font-size:12px;background:var(--green-bg);color:var(--green);border-color:var(--green)">✅ Concluído</button>
           <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deletarEvento('${ev.id}')" style="font-size:12px">🗑️</button>
         </div>
       </div>
@@ -1181,6 +1182,42 @@ function editarEvento(id){
   document.getElementById('ev-fim').value=ev.fim||'';
   document.getElementById('modal-evento-title').textContent='Editar evento';
   updateEvTomador();openModal('modal-evento');
+}
+
+function concluirEvento(id){
+  const ev=S.eventos.find(e=>e.id===id);
+  if(!ev)return;
+  const desp=S.despesas.filter(d=>d.eventoId===id);
+  const total=desp.reduce((s,d)=>s+d.valor,0);
+  const nome=nomeEvento(ev);
+
+  const confirmMsg=
+    `✅ Marcar "${nome}" como concluído?
+
+`+
+    `⚠️ ATENÇÃO: Esta ação vai DELETAR permanentemente:
+`+
+    `• ${desp.length} despesa(s) · ${fv(total)}
+`+
+    `• Todos os comprovantes anexados
+
+`+
+    `Certifique-se de que o PDF já foi enviado ao financeiro e o reembolso foi recebido antes de continuar.
+
+`+
+    `Esta ação não pode ser desfeita.`;
+
+  if(!confirm(confirmMsg))return;
+
+  // Segunda confirmação para segurança
+  if(!confirm(`Confirma a exclusão de "${nome}"?`))return;
+
+  S.eventos=S.eventos.filter(e=>e.id!==id);
+  S.despesas=S.despesas.filter(d=>d.eventoId!==id);
+  if(S.eventoAtivo===id)S.eventoAtivo='';
+  salvar();
+  renderEventos();
+  mostrarToast('✅ Evento concluído e removido!','ok');
 }
 
 function deletarEvento(id){
@@ -1726,12 +1763,60 @@ async function gerarPDFUnificado(){
     const num=(document.getElementById('num-nota').value||padNum(S.notaCounter)).padStart(4,'0');
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], {type:'application/pdf'});
+
+    // Download local
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Nota_de_Debito_N${num}_${ev.nome.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`;
+    const nomeArquivo = `Nota_de_Debito_N${num}_${ev.nome.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`;
+    a.download = nomeArquivo;
     a.click();
     URL.revokeObjectURL(url);
+
+    // Salvar no Drive na pasta do evento
+    if(accessToken && rootFolderId){
+      try{
+        btn.textContent='☁️ Salvando no Drive...';
+        const eventoFid = await getEventoFolderId(ev.id);
+        if(eventoFid){
+          // Converter blob para base64
+          const reader = new FileReader();
+          const base64 = await new Promise(res=>{
+            reader.onload=e=>res(e.target.result.split(',')[1]);
+            reader.readAsDataURL(blob);
+          });
+          // Verificar se já existe e deletar versão anterior
+          const q = `name='${nomeArquivo}' and trashed=false and '${eventoFid}' in parents`;
+          const existing = await driveReq('GET',
+            `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`);
+          if(existing.files&&existing.files.length>0){
+            await driveReq('DELETE',
+              `https://www.googleapis.com/drive/v3/files/${existing.files[0].id}`);
+          }
+          // Upload do PDF
+          const byteStr = atob(base64);
+          const arr = new Uint8Array(byteStr.length);
+          for(let i=0;i<byteStr.length;i++) arr[i]=byteStr.charCodeAt(i);
+          const pdfBlob = new Blob([arr],{type:'application/pdf'});
+          const meta = new Blob([JSON.stringify({
+            name:nomeArquivo,
+            mimeType:'application/pdf',
+            parents:[eventoFid]
+          })],{type:'application/json'});
+          const form = new FormData();
+          form.append('metadata',meta);
+          form.append('file',pdfBlob);
+          await fetch(
+            'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+            {method:'POST',headers:{'Authorization':'Bearer '+accessToken},body:form}
+          );
+          mostrarToast('☁️ PDF salvo no Drive!','ok');
+        }
+      }catch(e){
+        console.warn('Erro ao salvar PDF no Drive:',e);
+        mostrarToast('⚠️ PDF baixado mas não salvo no Drive','err');
+      }
+    }
 
   }catch(e){
     console.error('Erro ao gerar PDF:', e);
@@ -2044,6 +2129,8 @@ ${comprovantesHTML}
   \uD83D\uDDA8\uFE0F Imprimir / Salvar como PDF
 </button>
 
+</div><!-- /main-app -->
+
 <!-- TOUR OVERLAY -->
 <div class="tour-overlay" id="tour-overlay">
   <div class="tour-backdrop" onclick="pularTour()"></div>
@@ -2093,8 +2180,6 @@ ${comprovantesHTML}
     <button class="btn btn-primary mt16" onclick="closeModal('modal-ajuda');iniciarTour()">▶️ Ver tour interativo</button>
   </div>
 </div>
-
-</div><!-- /main-app -->
 </body></html>`;
 
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
