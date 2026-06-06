@@ -119,9 +119,7 @@ textarea{resize:vertical;min-height:68px}
 .modal-close{float:right;background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);margin-top:-4px}
 
 /* Banner instalar */
-.install-banner{background:var(--blue-bg);color:var(--blue);padding:12px 16px;font-size:13px;line-height:1.5;display:flex;align-items:flex-start;gap:10px}
-.install-banner .ib-icon{font-size:22px;flex-shrink:0;margin-top:1px}
-.install-banner .ib-close{background:none;border:none;color:var(--blue);cursor:pointer;font-size:18px;margin-left:auto;flex-shrink:0}
+
 
 #qr-video-wrap{display:none;position:fixed;inset:0;background:#000;z-index:200;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
 #qr-video-wrap.open{display:flex}
@@ -133,6 +131,21 @@ textarea{resize:vertical;min-height:68px}
 .qr-frame::after{bottom:0;right:0;border-width:0 4px 4px 0;border-radius:0 0 12px 0}
 
 #add-msg{font-size:13px;margin-top:10px;text-align:center;min-height:18px}
+
+/* Tutorial */
+.tour-overlay{display:none;position:fixed;inset:0;z-index:500;pointer-events:none}
+.tour-overlay.active{display:block}
+.tour-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:501}
+.tour-box{position:fixed;z-index:502;background:var(--bg);border-radius:16px;padding:20px;width:calc(100% - 48px);max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.3);pointer-events:all}
+.tour-box h3{font-size:17px;font-weight:700;margin-bottom:8px}
+.tour-box p{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px}
+.tour-box .tour-step{font-size:11px;color:var(--text2);margin-bottom:12px}
+.tour-nav{display:flex;gap:8px;align-items:center}
+.tour-dots{display:flex;gap:6px;flex:1;justify-content:center}
+.tour-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:background .2s}
+.tour-dot.active{background:var(--primary)}
+.tour-highlight{position:fixed;z-index:502;border-radius:12px;box-shadow:0 0 0 4px #fff,0 0 0 7px rgba(255,255,255,.3);pointer-events:none;transition:all .3s}
+.btn-help{background:none;border:1.5px solid var(--border2);border-radius:50%;width:28px;height:28px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);flex-shrink:0}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -198,14 +211,7 @@ textarea{resize:vertical;min-height:68px}
 
 <div class="app" id="main-app" style="display:none">
 
-  <!-- Banner instalar PWA -->
-  <div class="install-banner" id="install-banner" style="display:none">
-    <span class="ib-icon">📲</span>
-    <div>
-      <b>Instale o app para não perder dados!</b><br>
-      <span id="install-instructions"></span>
-    </div>
-    <button class="ib-close" onclick="fecharBanner()">✕</button>
+      <button class="ib-close" onclick="fecharBanner()">✕</button>
   </div>
 
   <div class="hdr">
@@ -214,9 +220,12 @@ textarea{resize:vertical;min-height:68px}
         <h1>📄 Nota de Débito</h1>
         <p id="hdr-user">Carregando...</p>
       </div>
-      <div style="text-align:right">
-        <div id="sync-status" style="font-size:11px;color:var(--text2)"></div>
-        <button onclick="fazerLogout()" style="background:none;border:none;font-size:11px;color:var(--text2);cursor:pointer;margin-top:2px">Sair</button>
+      <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn-help" onclick="abrirAjuda()" title="Ajuda">?</button>
+          <div id="sync-status" style="font-size:11px;color:var(--text2)"></div>
+        </div>
+        <button onclick="fazerLogout()" style="background:none;border:none;font-size:11px;color:var(--text2);cursor:pointer">Sair</button>
       </div>
     </div>
   </div>
@@ -925,6 +934,29 @@ function setSyncStatus(msg, isErr){
   if(!el)return;
   el.textContent=msg;
   el.style.color=isErr?'var(--red)':'var(--text2)';
+  // Toast visível quando salva com sucesso
+  if(!isErr && msg.includes('salvo às')){
+    mostrarToast('☁️ '+msg, 'ok');
+  } else if(isErr){
+    mostrarToast('⚠️ '+msg, 'err');
+  }
+}
+
+function mostrarToast(txt, tipo){
+  // Remove toast anterior se existir
+  const old=document.getElementById('toast-msg');
+  if(old) old.remove();
+  const t=document.createElement('div');
+  t.id='toast-msg';
+  const bg=tipo==='ok'?'var(--green-bg)':'var(--red-bg)';
+  const cor=tipo==='ok'?'var(--green)':'var(--red)';
+  t.style.cssText=`position:fixed;top:70px;left:50%;transform:translateX(-50%);
+    background:${bg};color:${cor};padding:8px 18px;border-radius:20px;
+    font-size:13px;font-weight:500;z-index:999;white-space:nowrap;
+    box-shadow:0 2px 8px rgba(0,0,0,.15);transition:opacity .3s`;
+  t.textContent=txt;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300)},2500);
 }
 
 function mostrarApp(){
@@ -980,31 +1012,10 @@ function fazerLogout(){
   google.accounts.id.prompt();
 }
 
-// ─── PWA BANNER ───────────────────────────────────────────────
-function mostrarBannerInstalar(){
-  if(localStorage.getItem('nd_banner_fechado'))return;
-  const isStandalone=window.matchMedia('(display-mode:standalone)').matches||window.navigator.standalone;
-  if(isStandalone)return; // Já instalado
-  const banner=document.getElementById('install-banner');
-  const inst=document.getElementById('install-instructions');
-  const ua=navigator.userAgent;
-  if(/android/i.test(ua)){
-    inst.innerHTML='Toque em <b>⋮ Menu</b> → <b>"Adicionar à tela inicial"</b> para salvar os dados com segurança.';
-  }else if(/iphone|ipad/i.test(ua)){
-    inst.innerHTML='Toque em <b>□ Compartilhar</b> → <b>"Adicionar à Tela de Início"</b> para salvar os dados com segurança.';
-  }else{
-    inst.innerHTML='Adicione à tela inicial do celular para garantir que os dados fiquem salvos.';
-  }
-  banner.style.display='flex';
-}
-
-function fecharBanner(){
-  document.getElementById('install-banner').style.display='none';
-  localStorage.setItem('nd_banner_fechado','1');
-}
 
 // ─── UTILS ────────────────────────────────────────────────────
 function fv(v){return'R$ '+parseFloat(v).toFixed(2).replace('.',',')}
+function nomeEvento(ev){return ev.nome+(ev.cidade?' | '+ev.cidade:'');}
 function fd(s){if(!s)return'';const[y,m,d]=s.split('-');return d+'/'+m+'/'+y}
 function todayStr(){return new Date().toISOString().split('T')[0]}
 function padNum(n){return String(n).padStart(4,'0')}
@@ -1040,8 +1051,8 @@ function renderEventos(){
     return`<div class="ev-card${isAtivo?' selected':''}" onclick="selecionarEvento('${ev.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div style="flex:1">
-          <div class="ev-title">${ev.nome}</div>
-          <div class="ev-sub">${ev.tomador}${ev.cidade?' · '+ev.cidade:''}</div>
+          <div class="ev-title">${ev.nome}${ev.cidade?' | '+ev.cidade:''}</div>
+          <div class="ev-sub">${ev.tomador}</div>
           <div class="ev-sub">${fd(ev.inicio)}${ev.fim&&ev.fim!==ev.inicio?' → '+fd(ev.fim):''}</div>
           ${desp.length
             ?`<div style="margin-top:6px;font-size:13px;font-weight:500">${desp.length} despesa(s) · ${fv(total)}</div>`
@@ -1176,7 +1187,18 @@ function editarEvento(id){
 }
 
 function deletarEvento(id){
-  if(!confirm('Deletar este evento e todas as suas despesas?'))return;
+  const ev=S.eventos.find(e=>e.id===id);
+  const desp=S.despesas.filter(d=>d.eventoId===id);
+  const total=desp.reduce((s,d)=>s+d.valor,0);
+  const nome=ev?nomeEvento(ev):'este evento';
+  const msg=desp.length>0
+    ? `Deletar "${nome}"?
+
+⚠️ Isso vai apagar ${desp.length} despesa(s) no valor de ${fv(total)}.
+
+Esta ação não pode ser desfeita.`
+    : `Deletar "${nome}"?`;
+  if(!confirm(msg))return;
   S.eventos=S.eventos.filter(e=>e.id!==id);
   S.despesas=S.despesas.filter(d=>d.eventoId!==id);
   if(S.eventoAtivo===id)S.eventoAtivo='';
@@ -1497,7 +1519,7 @@ function renderDespesas(){
         <div style="flex:1">
           <div class="exp-desc">${d.desc.split('\n')[0]}</div>
           <div style="font-size:12px;color:var(--text2);margin-top:1px">${d.desc.split('\n')[1]||''}</div>
-          <div class="exp-meta">${fd(d.data)}</div>
+          <div class="exp-meta">${fd(d.data)}${(()=>{const ev=S.eventos.find(e=>e.id===d.eventoId);return ev&&ev.cidade?' · '+ev.cidade:'';})()}</div>
           <div>
             <span class="badge ${d.tipo==='transporte'?'b-transp':'b-alim'}">${d.tipo==='transporte'?'🚗 Transporte':'🍽️ Alimentação'}</span>
             ${d.nfLink?'<span class="badge b-nf">🔗 NF-e</span>':''}
@@ -1553,7 +1575,7 @@ function renderGerar(){
     const desp=S.despesas.filter(d=>d.eventoId===ev.id);
     const isSel=ev.id===gerarEventoId;
     return`<div class="ev-card${isSel?' selected':''}" onclick="selecionarGerarEvento('${ev.id}')">
-      <div class="ev-title">${ev.nome}</div>
+      <div class="ev-title">${ev.nome}${ev.cidade?' | '+ev.cidade:''}</div>
       <div class="ev-sub">${ev.tomador} · ${desp.length} despesa(s)${desp.length?' · '+fv(desp.reduce((s,d)=>s+d.valor,0)):''}</div>
     </div>`;
   }).join('')||'<div class="alert a-warn">Nenhum evento cadastrado.</div>';
@@ -1579,12 +1601,36 @@ function renderGerarPreview(){
   const desp=S.despesas.filter(d=>d.eventoId===gerarEventoId);
   if(!desp.length){el.innerHTML='<div class="alert a-warn">Nenhuma despesa neste evento.</div>';return}
   const total=desp.reduce((s,d)=>s+d.valor,0);
-  const transp=desp.filter(d=>d.tipo==='transporte').reduce((s,d)=>s+d.valor,0);
-  const alim=desp.filter(d=>d.tipo==='alimentacao').reduce((s,d)=>s+d.valor,0);
-  el.innerHTML=`<div class="alert a-ok">✅ ${desp.length} despesa(s) · Total: <b>${fv(total)}</b></div>
-    <div class="info-card" style="font-size:13px">
-      ${transp>0?`<div class="pf"><div class="fl">Transporte</div><div class="fv">${fv(transp)}</div></div>`:''}
-      ${alim>0?`<div class="pf"><div class="fl">Alimentação</div><div class="fv">${fv(alim)}</div></div>`:''}
+  const transp=desp.filter(d=>d.tipo==='transporte');
+  const alim=desp.filter(d=>d.tipo==='alimentacao');
+  const outro=desp.filter(d=>d.tipo==='outro');
+  const tvTotal=transp.reduce((s,d)=>s+d.valor,0);
+  const avTotal=alim.reduce((s,d)=>s+d.valor,0);
+  const ovTotal=outro.reduce((s,d)=>s+d.valor,0);
+
+  const barWidth=(v)=>Math.round((v/total)*100);
+
+  const barHtml=(label,icon,count,val,color)=>count===0?'':
+    `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:13px">${icon} ${label} <span style="color:var(--text2);font-size:12px">(${count}x)</span></span>
+        <span style="font-size:14px;font-weight:600">${fv(val)}</span>
+      </div>
+      <div style="background:var(--bg3);border-radius:4px;height:6px">
+        <div style="background:${color};width:${barWidth(val)}%;height:6px;border-radius:4px;transition:width .3s"></div>
+      </div>
+    </div>`;
+
+  el.innerHTML=`
+    <div class="alert a-ok" style="margin-bottom:12px">✅ <b>${desp.length}</b> despesa(s) prontas · Total: <b>${fv(total)}</b></div>
+    <div class="card" style="padding:14px 16px">
+      ${barHtml('Transporte','🚗',transp.length,tvTotal,'var(--blue)')}
+      ${barHtml('Alimentação','🍽️',alim.length,avTotal,'var(--green)')}
+      ${barHtml('Outros','➕',outro.length,ovTotal,'var(--amber)')}
+      <div style="border-top:.5px solid var(--border);padding-top:10px;margin-top:2px;display:flex;justify-content:space-between">
+        <span style="font-size:13px;color:var(--text2)">Total geral</span>
+        <span style="font-size:18px;font-weight:700">${fv(total)}</span>
+      </div>
     </div>`;
 }
 
@@ -2000,6 +2046,57 @@ ${comprovantesHTML}
   style="display:block;margin:24px auto 0;padding:12px 32px;font-size:15px;cursor:pointer;background:#000;color:#fff;border:none;border-radius:8px">
   \uD83D\uDDA8\uFE0F Imprimir / Salvar como PDF
 </button>
+
+<!-- TOUR OVERLAY -->
+<div class="tour-overlay" id="tour-overlay">
+  <div class="tour-backdrop" onclick="pularTour()"></div>
+  <div class="tour-highlight" id="tour-highlight"></div>
+  <div class="tour-box" id="tour-box">
+    <div class="tour-step" id="tour-step-label"></div>
+    <h3 id="tour-title"></h3>
+    <p id="tour-desc"></p>
+    <div class="tour-nav">
+      <button class="btn btn-sm btn-ghost" onclick="pularTour()" style="width:auto;font-size:12px">Pular</button>
+      <div class="tour-dots" id="tour-dots"></div>
+      <button class="btn btn-sm btn-primary" id="tour-next-btn" onclick="proximoTour()" style="width:auto">Próximo →</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AJUDA -->
+<div class="modal-overlay" id="modal-ajuda">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-ajuda')">✕</button>
+    <h2>📖 Guia rápido</h2>
+    <div style="font-size:14px;line-height:1.8">
+      <div style="margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:4px">📅 Eventos</div>
+        <div style="color:var(--text2);font-size:13px">Cadastre o evento <b>antes</b> de lançar despesas. Coloque as datas de deslocamento completas — incluindo dia de ida e volta, não só os dias do evento.</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:4px">➕ Lançar</div>
+        <div style="color:var(--text2);font-size:13px">Selecione o tipo (Transporte, Alimentação ou Outro), escolha a data e informe o valor. O <b>Dia X</b> é calculado automaticamente pela data. Anexe o comprovante (foto ou PDF).</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:4px">📋 Despesas</div>
+        <div style="color:var(--text2);font-size:13px">Confira tudo que lançou. Use ↑ Subir / ↓ Descer para reordenar. Toque em ✏️ Editar para corrigir qualquer dado ou trocar comprovantes.</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:4px">📥 Gerar</div>
+        <div style="color:var(--text2);font-size:13px">Confira o resumo por categoria e gere o PDF. O arquivo inclui a nota de débito + todos os comprovantes em um único PDF.</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:4px">⚙️ Dados</div>
+        <div style="color:var(--text2);font-size:13px">Edite seus dados pessoais, bancários, tomadores cadastrados e e-mail de envio.</div>
+      </div>
+      <div style="background:var(--amber-bg);color:var(--amber);border-radius:8px;padding:10px 12px;font-size:13px">
+        ⚠️ <b>Lembre-se:</b> prints de tela do banco não são aceitos. Uber/99 envie o PDF com trajeto completo.
+      </div>
+    </div>
+    <button class="btn btn-primary mt16" onclick="closeModal('modal-ajuda');iniciarTour()">▶️ Ver tour interativo</button>
+  </div>
+</div>
+
 </div><!-- /main-app -->
 </body></html>`;
 
@@ -2424,6 +2521,124 @@ function salvarEdicao(){
   renderDespesas();
 }
 
+// ─── TUTORIAL / TOUR ─────────────────────────────────────────
+const TOUR_STEPS = [
+  {
+    title: '👋 Bem-vindo ao app!',
+    desc: 'Este é o seu app de Nota de Débito. Em poucos passos você aprende tudo. Vamos lá?',
+    tab: null, selector: null
+  },
+  {
+    title: '📅 Eventos',
+    desc: 'Comece sempre aqui! Cadastre o evento com as datas completas de deslocamento — inclua o dia de ida e o de volta, não só os dias do evento em si.',
+    tab: 'eventos', selector: '#tab-eventos'
+  },
+  {
+    title: '➕ Lançar despesas',
+    desc: 'Aqui você registra cada gasto. Selecione o tipo (Transporte, Alimentação ou Outro), escolha a data e o valor. O Dia X é calculado automaticamente!',
+    tab: 'lancar', selector: '#tab-lancar'
+  },
+  {
+    title: '📎 Comprovantes',
+    desc: 'Após preencher os dados, anexe o comprovante. Tire foto com 📷 Câmera ou escolha da 📁 Galeria. PDFs do Uber/99 também são aceitos.',
+    tab: 'lancar', selector: '.slabel'
+  },
+  {
+    title: '📋 Conferir despesas',
+    desc: 'Veja tudo que lançou, reordene com ↑ Subir / ↓ Descer e edite qualquer item com ✏️ Editar.',
+    tab: 'despesas', selector: '#tab-despesas'
+  },
+  {
+    title: '📥 Gerar nota',
+    desc: 'Quando terminar, gere a Nota de Débito. Você verá o resumo por categoria antes de gerar. O PDF final inclui a nota + todos os comprovantes.',
+    tab: 'gerar', selector: '#tab-gerar'
+  },
+  {
+    title: '⚙️ Seus dados',
+    desc: 'Em Dados você edita suas informações pessoais, bancárias e os tomadores cadastrados.',
+    tab: 'config', selector: '#tab-config'
+  },
+  {
+    title: '✅ Pronto!',
+    desc: 'Seus dados ficam salvos automaticamente no seu Google Drive — acesse de qualquer dispositivo. Toque em ? para ver este guia novamente.',
+    tab: null, selector: null
+  }
+];
+
+let tourStep = 0;
+
+function iniciarTour(){
+  closeModal('modal-ajuda');
+  tourStep = 0;
+  document.getElementById('tour-overlay').classList.add('active');
+  renderTourStep();
+}
+
+function renderTourStep(){
+  const step = TOUR_STEPS[tourStep];
+  const total = TOUR_STEPS.length;
+
+  document.getElementById('tour-step-label').textContent = `Passo ${tourStep+1} de ${total}`;
+  document.getElementById('tour-title').textContent = step.title;
+  document.getElementById('tour-desc').textContent = step.desc;
+
+  // Dots
+  document.getElementById('tour-dots').innerHTML = TOUR_STEPS.map((_,i)=>
+    `<div class="tour-dot${i===tourStep?' active':''}"></div>`).join('');
+
+  // Botão final
+  const btn = document.getElementById('tour-next-btn');
+  btn.textContent = tourStep === total-1 ? '✅ Concluir' : 'Próximo →';
+
+  // Navegar para a aba do step
+  if(step.tab){
+    go(step.tab);
+  }
+
+  // Highlight do elemento
+  const hl = document.getElementById('tour-highlight');
+  if(step.selector){
+    setTimeout(()=>{
+      const el = document.querySelector(step.selector);
+      if(el){
+        const rect = el.getBoundingClientRect();
+        hl.style.cssText = `position:fixed;z-index:502;border-radius:12px;
+          box-shadow:0 0 0 4px #fff,0 0 0 7px rgba(255,255,255,.3);pointer-events:none;
+          left:${rect.left-6}px;top:${rect.top-6}px;
+          width:${rect.width+12}px;height:${rect.height+12}px`;
+      } else { hl.style.cssText='display:none'; }
+    }, 300);
+  } else {
+    hl.style.cssText = 'display:none';
+  }
+
+  // Posicionar a caixa
+  const box = document.getElementById('tour-box');
+  box.style.cssText = tourStep <= 1 || tourStep === total-1
+    ? 'bottom:100px;left:50%;transform:translateX(-50%)'
+    : 'bottom:100px;left:50%;transform:translateX(-50%)';
+}
+
+function proximoTour(){
+  if(tourStep >= TOUR_STEPS.length-1){
+    pularTour();
+    localStorage.setItem('nd_tour_done','1');
+    return;
+  }
+  tourStep++;
+  renderTourStep();
+}
+
+function pularTour(){
+  document.getElementById('tour-overlay').classList.remove('active');
+  document.getElementById('tour-highlight').style.cssText='display:none';
+  localStorage.setItem('nd_tour_done','1');
+}
+
+function abrirAjuda(){
+  openModal('modal-ajuda');
+}
+
 // ─── INIT ─────────────────────────────────────────────────────
 // Init — síncrono, nunca trava
 function fazerLogout(){
@@ -2446,8 +2661,7 @@ function initApp(){
   diaAtivo=1;
   calcularDiaAuto();
   atualizarDesc();
-  mostrarBannerInstalar();
-  atualizarStorageInfo();
+    atualizarStorageInfo();
 }
 
 // O Google cuida do init — initApp é chamado após login
